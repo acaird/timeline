@@ -1,0 +1,69 @@
+ImageSize  = width:900 height:auto barincrement:25
+PlotArea   = left:95 bottom:100 top:0 right:15
+Alignbars  = justify
+DateFormat = dd/mm/yyyy
+Period     = from:05/06/1976 till:31/12/1980
+TimeAxis   = orientation:horizontal format:yyyy
+
+Colors =
+ id:LVocals    value:red        legend:Lead_vocals,_melodica
+ id:Bvocals    value:pink       legend:Backing_and_occasional_lead_vocals
+ id:Guitar     value:green      legend:Guitar
+ id:Bass       value:blue       legend:Bass
+ id:Keys       value:purple     legend:Keyboards,_synthesiser
+ id:Drums      value:orange     legend:Drums
+ id:Percussion value:claret     legend:Percussion
+ id:Studio     value:black      legend:Studio_album
+ id:Other      value:gray(0.7)  legend:Other_release
+ id:bs       value:gray(0.1)
+ id:hh       value:gray(0.3)
+ id:bars       value:gray(0.95)
+
+BackgroundColors = bars:bars
+
+Legend           = orientation:vertical position:bottom columns:3
+
+ScaleMajor       = increment:1 start:1977
+ScaleMinor       = increment:1 start:1977
+
+BarData =
+ bar:Name    text:"Band name"
+ bar:Ian     text:"Ian Curtis"
+ bar:Bernard text:"Bernard Sumner"
+ bar:Peter   text:"Peter Hook"
+ bar:Terry   text:"Terry Mason"
+ bar:Tony    text:"Tony Tabac"
+ bar:Steve   text:"Steve Brotherdale"
+ bar:Stephen text:"Stephen Morris"
+
+PlotData=
+ align:center textcolor:white width:13 fontsize:8 shift:(6,-4)
+ bar:Name    from:01/01/1977     till:29/05/1977 color:bs text:Stiff Kittens
+ bar:Name    from:29/05/1977     till:25/01/1978 color:hh text:Warsaw
+ bar:Name    from:25/01/1978     till:end        color:bs text:Joy Division
+ bar:Ian     from:01/09/1976     till:18/05/1980 color:LVocals
+ bar:Ian     from:31/01/1979     till:18/05/1980 color:Guitar     width:3
+ bar:Bernard from:start          till:18/05/1980 color:Guitar
+ bar:Bernard from:31/01/1979     till:18/05/1980 color:Bass       width:7
+ bar:Bernard from:start          till:18/05/1980 color:Keys       width:3
+ bar:Peter   from:start          till:18/05/1980 color:Bass
+ bar:Peter   from:31/01/1979     till:18/05/1980 color:Guitar     width:7
+ bar:Peter   from:01/09/1976     till:18/05/1980 color:Bvocals    width:3
+ bar:Terry   from:start          till:27/05/1977 color:Drums
+ bar:Tony    from:27/05/1977     till:15/06/1977 color:Drums
+ bar:Steve   from:15/06/1977     till:15/07/1977 color:Drums
+ bar:Stephen from:01/08/1977     till:18/05/1980 color:Drums
+ bar:Stephen from:01/08/1977     till:18/05/1980 color:Percussion width:3
+
+LineData =
+ layer:back
+ color:Studio
+ at:15/06/1979
+ at:18/07/1980
+ color:Other
+ at:03/06/1978
+ at:07/10/1979
+ at:18/03/1980
+ at:01/06/1980
+ at:20/06/1980
+ at:01/09/1980

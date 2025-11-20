@@ -1,0 +1,305 @@
+// from Google Gemini, which was crap
+// https://en.wikipedia.org/wiki/Help:EasyTimeline_syntax
+// so far, this does not implement everything
+package parse
+
+import (
+	"bufio"
+	"fmt"
+	"regexp"
+	"strconv"
+	"strings"
+	"time"
+	"unicode"
+)
+
+// --- Data Structures ---
+
+// Timeline represents the entire parsed timeline configuration.
+type Timeline struct {
+	PeriodStart time.Time
+	PeriodEnd   time.Time
+	ImageSize   ImageSize
+	Colors      map[string]Color
+	Bars        map[string]Bar
+	PlotItems   []PlotItem
+	LineEvents  []LineEvents
+}
+
+// ImageSize stores the size of the image as specified in the file
+type ImageSize struct {
+	Width        int
+	Height       int
+	Barincrement int
+}
+
+// Color stores the ID, actual value, and legend text for a color definition.
+type Color struct {
+	ID     string
+	Value  string
+	Legend string
+}
+
+// Bar stores the ID and the display text for a member/bar in the timeline.
+type Bar struct {
+	ID   string
+	Text string
+}
+
+// PlotItem represents an interval (e.g., a member's tenure in a role).
+type PlotItem struct {
+	BarID   string
+	From    time.Time
+	Til     time.Time
+	ColorID string
+	Width   int // Corresponds to the layer width (e.g., 11, 7, 3)
+	Text    string
+}
+
+// LineEvents represents a vertical line marker (e.g., an album release).
+type LineEvents struct {
+	ColorID string
+	Date    time.Time
+}
+
+// --- Parsing Constants and Helper Regex ---
+
+// Regex to determine sections (lines that end in `=`)
+var sectionRe = regexp.MustCompile(`^[A-Z].*=$`)
+
+// Regex for config lines (lines that have `=` but don't end with that
+var confirRe = regexp.MustCompile(`^[A-Z].*=.*`)
+
+// Regex to capture key-value pairs in the general config sections (like ImageSize).
+var kvRe = regexp.MustCompile(`^\s*(\w+)\s*=\s*(.*)$`)
+
+// Regex to capture BarData (e.g., bar:Alex text:Alex Kapranos)
+var barRe = regexp.MustCompile(`^\s*bar:(\w+).*text:(.+?)(?:\s+|$)$`)
+
+// Regex to capture color definitions (e.g., id:lvocals value:red legend:Lead_vocals)
+// "legend" is optional; if it is not present, no entry will appear in the legend,
+// but the color is still important to have for other places
+// (this regex is similar to the 'plotRe' regex; refer to those notes)
+var colorRe = regexp.MustCompile(`\s*id:(\S+)\s+value:(\S+)\s*(?:legend:(.+))?`)
+
+// Regex to capture PlotData and LineData (key:value pairs separated by spaces/tabs)
+// This is intentionally broad, refined in the parsing logic.
+// This matches lines like:
+//
+//	bar:Name  from:25/01/1978  till:end  color:bs  text:Joy Division
+//
+// where "text:" is optional
+// in English it reads:
+//   - the line can start with 0 or more spaces
+//     (the real line always has leading spaces, but we might strip them off before we get here)
+//   - next is the word "bar" followed by a colon ("bar:"), then 1 or more of any "word character";
+//     the parens here mean "capture"
+//   - then expect 1 or more spaces
+//   - next is the string "from:" and 1 or more of any non-whitespace character which are captured
+//   - then expect 1 or more spaces
+//   - next is the string "till:" and 1 or more of any non-whitespace character which are captured
+//   - then expect 0 or more spaces (0 in case it is the end of the line)
+//   - then a non-capturing group with the string "text:",
+//     but do capture the next 1 or more non-whitespace characters;
+//     the whole outer group is optional (the trailing "?")
+//   - this results in 6 "matches":
+//     1. the whole line
+//     2. text after "bar:"
+//     3. string after "from:"
+//     4. string after "til:"
+//     5. string after "color:"
+//     6. (optinal) string after "text:"
+var plotRe = regexp.MustCompile(`^\s*bar:(\w+)\s+from:(\S+)\s+till:(\S+)\s+color:(\S+)\s*(?:text:(.+))?`)
+
+// replace spaces, including unicode spaces
+var replaceSpacesRe = regexp.MustCompile(`\p{Zs}`)
+
+// ParseTimeline parses the raw timeline configuration string into the Timeline struct.
+func ParseTimeline(rawConfig string) (*Timeline, error) {
+	t := &Timeline{
+		Colors: make(map[string]Color),
+		Bars:   make(map[string]Bar),
+	}
+
+	// Remove the surrounding MediaWiki tags and extra whitespace
+	rawConfig = strings.TrimPrefix(rawConfig, "{{#tag:timeline|\n")
+	rawConfig = strings.TrimSuffix(rawConfig, "\n}}")
+
+	scanner := bufio.NewScanner(strings.NewReader(rawConfig))
+	currentSection := ""
+	currentWidth := 0
+	lineColor := ""
+	// const layout = "02/01/2006" // dd/mm/yyyy
+	var layout string
+
+	for scanner.Scan() {
+		line := strings.TrimRightFunc(scanner.Text(), unicode.IsSpace)
+		line = replaceSpacesRe.ReplaceAllString(line, " ")
+		if line == "" || strings.HasPrefix(line, "%") {
+			continue // Skip empty lines and comments
+		}
+
+		if (currentSection == "" || currentSection != "Config") &&
+			confirRe.MatchString(line) {
+			currentSection = "Config"
+		}
+
+		if sectionRe.MatchString(line) {
+			currentSection = strings.TrimRight(line, " =")
+		}
+
+		switch currentSection {
+		case "Config":
+			if strings.HasPrefix(line, "Period =") {
+				// Example: Period = from:01/07/2001 till:{{#time:d/m/Y}}
+				parts := strings.Split(line, ":")
+				if len(parts) == 3 {
+					fromPart := strings.TrimSpace(
+						strings.Replace(parts[1], "till", "", 1))
+					tillPart := strings.TrimSpace(parts[2])
+					start, err := time.Parse(layout, fromPart)
+					if err == nil {
+						t.PeriodStart = start
+					} else {
+						panic("couldn't compute date (start)")
+					}
+					end, err := time.Parse(layout, tillPart)
+					if err == nil {
+						t.PeriodEnd = end
+					} else {
+						panic("couldn't compute date (end)")
+					}
+				}
+			}
+			if strings.HasPrefix(line, "ImageSize") {
+				line = strings.ReplaceAll(line, "ImageSize = ", "")
+				for p := range strings.SplitSeq(line, " ") {
+					kv := strings.Split(p, ":")
+					switch kv[0] {
+					case "width":
+						if kv[1] == "auto" {
+							t.ImageSize.Width = 0 // 0 can mean unspec'd
+						} else {
+							t.ImageSize.Width, _ = strconv.Atoi(kv[1])
+						}
+					case "height":
+						if kv[1] == "auto" {
+							t.ImageSize.Height = 0
+						} else {
+							t.ImageSize.Height, _ = strconv.Atoi(kv[1])
+						}
+					case "barincrement":
+						if kv[1] == "auto" {
+							t.ImageSize.Barincrement = 0
+						} else {
+							t.ImageSize.Barincrement, _ = strconv.Atoi(kv[1])
+						}
+					}
+				}
+			}
+			if strings.HasPrefix(line, "DateFormat") {
+				layout = "02/01/2006" // dd/mm/yyyy
+				dateFormat := strings.TrimSpace(strings.Split(line, "=")[1])
+				switch dateFormat {
+				case "mm/dd/yyyy":
+					layout = "01/02/2006" // mm/dd/yyyy
+				case "yyyy":
+					layout = "2006" // yyyy
+				default:
+					layout = "02/01/2006" // dd/mm/yyyy
+				}
+			}
+
+		case "Colors":
+			matches := colorRe.FindStringSubmatch(line)
+			if len(matches) == 4 {
+				colorID := strings.TrimSpace(matches[1])
+				t.Colors[colorID] = Color{
+					ID:     colorID,
+					Value:  strings.TrimSpace(matches[2]),
+					Legend: strings.TrimSpace(strings.ReplaceAll(matches[3], "_", " ")),
+				}
+			}
+
+		case "BarData":
+			matches := barRe.FindStringSubmatch(line)
+			if len(matches) == 3 {
+				barID := matches[1]
+				t.Bars[barID] = Bar{
+					ID:   barID,
+					Text: matches[2],
+				}
+			}
+
+		case "PlotData":
+			line = strings.TrimSpace(line)
+			// Check for layer width change
+			if strings.HasPrefix(line, "width:") {
+				var err error
+				_, err = fmt.Sscanf(line, "width:%d", &currentWidth)
+				if err != nil {
+					return nil, fmt.Errorf("error parsing plot width in line '%s': %w", line, err)
+				}
+				continue
+			}
+
+			// Parse plot item using the last known width
+			matches := plotRe.FindStringSubmatch(line)
+			var from, til time.Time
+			var err error
+			// ij, _ := json.MarshalIndent(matches, "", " ")
+			// fmt.Printf("%s\n", string(ij))
+			if len(matches) == 6 {
+				if matches[2] == "start" {
+					from = t.PeriodStart
+				} else {
+					from, err = time.Parse(layout, matches[2])
+					if err != nil {
+						panic("couldn't parse date 201")
+					}
+				}
+				if matches[3] == "end" {
+					from = t.PeriodEnd
+				} else {
+					til, err = time.Parse(layout, matches[3])
+					if err != nil {
+						panic("couldn't parse date 202")
+					}
+				}
+				t.PlotItems = append(t.PlotItems, PlotItem{
+					BarID:   matches[1],
+					From:    from,
+					Til:     til,
+					ColorID: matches[4],
+					Width:   currentWidth, // Use the last parsed width
+					Text:    matches[5],
+					// Text:    strings.TrimSpace(strings.ReplaceAll(matches[5], "_", " ")),
+				})
+			}
+
+		case "LineData":
+			cleanLine := strings.TrimSpace(line)
+			cleanLine = replaceSpacesRe.ReplaceAllString(cleanLine, " ")
+			if strings.HasPrefix(cleanLine, "color:") {
+				lineColor = strings.Split(cleanLine, ":")[1]
+			}
+			if strings.HasPrefix(cleanLine, "at:") {
+				date := strings.Split(cleanLine, ":")[1]
+				d, err := time.Parse(layout, date)
+				if err != nil {
+					panic("couldn't parse date 101")
+				}
+				t.LineEvents = append(t.LineEvents, LineEvents{
+					ColorID: lineColor,
+					Date:    d,
+				})
+			}
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		return nil, fmt.Errorf("error reading configuration: %w", err)
+	}
+
+	return t, nil
+}
