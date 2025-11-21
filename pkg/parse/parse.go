@@ -5,7 +5,9 @@ package parse
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -82,6 +84,9 @@ var barRe = regexp.MustCompile(`^\s*bar:(\w+).*text:(.+?)(?:\s+|$)$`)
 // (this regex is similar to the 'plotRe' regex; refer to those notes)
 var colorRe = regexp.MustCompile(`\s*id:(\S+)\s+value:(\S+)\s*(?:legend:(.+))?`)
 
+// widthRe for PlodData
+var widthRE = regexp.MustCompile(`.*width:\s*(\d+).*`)
+
 // Regex to capture PlotData and LineData (key:value pairs separated by spaces/tabs)
 // This is intentionally broad, refined in the parsing logic.
 // This matches lines like:
@@ -109,7 +114,8 @@ var colorRe = regexp.MustCompile(`\s*id:(\S+)\s+value:(\S+)\s*(?:legend:(.+))?`)
 //     4. string after "til:"
 //     5. string after "color:"
 //     6. (optinal) string after "text:"
-var plotRe = regexp.MustCompile(`^\s*bar:(\w+)\s+from:(\S+)\s+till:(\S+)\s+color:(\S+)\s*(?:text:(.+))?`)
+//     7. (optinal) string after "width:"
+var plotRe = regexp.MustCompile(`^\s*bar:(\w+)\s+from:(\S+)\s+till:(\S+)\s+color:(\S+)\s*(?:text:?(.+))?\s*(?:width:(\d+))?`)
 
 // replace spaces, including unicode spaces
 var replaceSpacesRe = regexp.MustCompile(`\p{Zs}`)
@@ -129,8 +135,8 @@ func ParseTimeline(rawConfig string) (*Timeline, error) {
 	currentSection := ""
 	currentWidth := 0
 	lineColor := ""
-	// const layout = "02/01/2006" // dd/mm/yyyy
 	var layout string
+	var defaultWidth int
 
 	for scanner.Scan() {
 		line := strings.TrimRightFunc(scanner.Text(), unicode.IsSpace)
@@ -150,26 +156,49 @@ func ParseTimeline(rawConfig string) (*Timeline, error) {
 
 		switch currentSection {
 		case "Config":
-			if strings.HasPrefix(line, "Period =") {
+			if strings.HasPrefix(line, "Period") {
+				var start, end time.Time
+				var err error
 				// Example: Period = from:01/07/2001 till:{{#time:d/m/Y}}
-				parts := strings.Split(line, ":")
+
+				// first, deal with "Period=" vs "Period ="
+				line = strings.Replace(line, "=", " ", 1)
+				// split on spaces
+				parts := strings.Fields(line)
+
 				if len(parts) == 3 {
 					fromPart := strings.TrimSpace(
-						strings.Replace(parts[1], "till", "", 1))
-					tillPart := strings.TrimSpace(parts[2])
-					start, err := time.Parse(layout, fromPart)
+						strings.Replace(parts[1], "from:", "", 1))
+					tillPart := strings.TrimSpace(
+						strings.Replace(parts[2], "till:", "", 1))
+					// see if there is some
+					// embedded code and hope it
+					// is just the current time
+					if strings.HasPrefix(tillPart, "{") {
+						end, err = parseTimeEmbed(tillPart)
+						if err != nil {
+							panic(err.Error())
+						}
+						tillPart = end.Format(layout)
+					}
+					start, err = time.Parse(layout, fromPart)
 					if err == nil {
 						t.PeriodStart = start
 					} else {
 						panic("couldn't compute date (start)")
 					}
-					end, err := time.Parse(layout, tillPart)
+
+					end, err = time.Parse(layout, tillPart)
 					if err == nil {
 						t.PeriodEnd = end
 					} else {
 						panic("couldn't compute date (end)")
 					}
+
 				}
+				fmt.Printf("start: %s  end: %s\n",
+					t.PeriodStart.Format(time.RFC1123),
+					t.PeriodEnd.Format(time.RFC1123))
 			}
 			if strings.HasPrefix(line, "ImageSize") {
 				line = strings.ReplaceAll(line, "ImageSize = ", "")
@@ -233,23 +262,30 @@ func ParseTimeline(rawConfig string) (*Timeline, error) {
 
 		case "PlotData":
 			line = strings.TrimSpace(line)
-			// Check for layer width change
-			if strings.HasPrefix(line, "width:") {
-				var err error
-				_, err = fmt.Sscanf(line, "width:%d", &currentWidth)
-				if err != nil {
-					return nil, fmt.Errorf("error parsing plot width in line '%s': %w", line, err)
+			// can't do this in regex; negative look-ahead isn't supported :/
+			if !strings.Contains(strings.ToLower(line), "bar") {
+				matches := widthRE.FindStringSubmatch(line)
+				var errr error // XXX wtah
+				if len(matches) == 2 {
+					currentWidth, errr = strconv.Atoi(matches[1])
+					if errr != nil {
+						fmt.Printf("couldn't parse width: %s", errr.Error())
+						os.Exit(1)
+					}
+					defaultWidth = currentWidth
 				}
-				continue
+				fmt.Printf("default width: %d |%s|\n", defaultWidth, line)
 			}
-
 			// Parse plot item using the last known width
 			matches := plotRe.FindStringSubmatch(line)
 			var from, til time.Time
 			var err error
-			// ij, _ := json.MarshalIndent(matches, "", " ")
-			// fmt.Printf("%s\n", string(ij))
-			if len(matches) == 6 {
+			if len(matches) == 7 {
+				width := currentWidth
+				w, _ := strconv.Atoi(matches[6])
+				if w != 0 {
+					width = w
+				}
 				if matches[2] == "start" {
 					from = t.PeriodStart
 				} else {
@@ -259,21 +295,24 @@ func ParseTimeline(rawConfig string) (*Timeline, error) {
 					}
 				}
 				if matches[3] == "end" {
-					from = t.PeriodEnd
+					til = t.PeriodEnd
 				} else {
 					til, err = time.Parse(layout, matches[3])
 					if err != nil {
 						panic("couldn't parse date 202")
 					}
 				}
+				if matches[6] == "" {
+					width = defaultWidth
+				}
 				t.PlotItems = append(t.PlotItems, PlotItem{
 					BarID:   matches[1],
 					From:    from,
 					Til:     til,
 					ColorID: matches[4],
-					Width:   currentWidth, // Use the last parsed width
+					Width:   width, // Use the last parsed width
 					Text:    matches[5],
-					// Text:    strings.TrimSpace(strings.ReplaceAll(matches[5], "_", " ")),
+					// XXX Text:    strings.TrimSpace(strings.ReplaceAll(matches[5], "_", " ")),
 				})
 			}
 
@@ -302,4 +341,14 @@ func ParseTimeline(rawConfig string) (*Timeline, error) {
 	}
 
 	return t, nil
+}
+
+func parseTimeEmbed(t string) (time.Time, error) {
+	// we are looking for "{{#time:d/m/Y}}" but don't care about
+	// the format, since we are doing time the right way
+	if strings.HasPrefix(t, "{{#time:") {
+		return time.Now(), nil
+	} else {
+		return time.Time{}, errors.New("could not parse embedded command")
+	}
 }
