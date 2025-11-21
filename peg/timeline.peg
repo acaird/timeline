@@ -1,0 +1,37 @@
+{
+
+package timeline
+
+import "strings"
+
+type ImageSize struct {
+  Width  string
+  Height string
+  Barincrement string
+}
+}
+Field
+  = key:ImageSizeIdentifier value:Value {
+     // var w string
+     // if strings.HasPrefix(value.(string), strings.ToLower("width")) {
+     //    w = strings.Split(value.(string), ":")[1]
+     // }
+     return &ImageSize{Width: value.(string)}, nil
+  }
+
+
+ImageSizeIdentifier
+  = "ImageSize"_"="_ {
+    return string(c.text), nil
+  }
+
+Value
+  = [a-z :]+ {
+    return string(c.text), nil
+    }
+
+_
+  = [ \t]*
+
+EOF
+  = !.
