@@ -1,0 +1,124 @@
+ImageSize  = width:945 height:auto barincrement:20
+PlotArea   = left:100 bottom:100 top:10 right:15
+Alignbars  = justify
+DateFormat = dd/mm/yyyy
+Period     = from:01/05/1978 till:{{#time:d/m/Y}}
+TimeAxis   = orientation:horizontal format:yyyy
+Legend     = orientation:vertical position:bottom columns:4
+ScaleMajor = increment:5 start:1980
+ScaleMinor = increment:1 start:1979
+
+Colors =
+  id:lvocals value:red         legend:Vocals
+  id:guitar  value:green       legend:Guitars
+  id:bass    value:blue        legend:Bass
+  id:six     value:darkblue    legend:Bass-VI
+  id:keys    value:purple      legend:Keyboards
+  id:drums   value:orange      legend:Drums
+  id:perc    value:claret      legend:Percussion
+  id:harm    value:skyblue     legend:Harmonica
+  id:sax     value:tan2        legend:Saxophone
+  id:studio  value:black       legend:Studio_album
+  id:live    value:gray(0.7)   legend:Live_recording
+  id:bars    value:gray(0.95)
+
+BackgroundColors = bars:bars
+
+LineData =
+ layer:back
+  color:live
+  at:05/05/1984
+  at:17/10/1984
+  at:09/08/1986
+  at:22/07/1989
+  at:17/01/1991
+  at:18/07/1992
+  at:19/10/1992
+  at:11/11/2002
+  at:05/08/2005
+  at:10/09/2011
+  at:18/10/2019
+  color:studio
+  at:08/05/1979
+  at:22/04/1980
+  at:14/04/1981
+  at:04/05/1982
+  at:22/05/1984
+  at:13/08/1985
+  at:25/05/1987
+  at:02/05/1989
+  at:21/04/1992
+  at:07/05/1996
+  at:15/02/2000
+  at:28/06/2004
+  at:27/10/2008
+  at:01/11/2024
+
+BarData =
+  bar:Robert   text:Robert Smith
+  bar:Porl     text:Porl Thompson
+  bar:Reeves   text:Reeves Gabrels
+  bar:Michael  text:Michael Dempsey
+  bar:Simon    text:Simon Gallup
+  bar:Phil     text:Phil Thornalley
+  bar:Matthieu text:Matthieu Hartley
+  bar:Roger    text:Roger O'Donnell
+  bar:Perry    text:Perry Bamonte
+  bar:Lol      text:Lol Tolhurst
+  bar:Andy     text:Andy Anderson
+  bar:Boris    text:Boris Williams
+  bar:Jason    text:Jason Cooper
+
+PlotData=
+ width:13 textcolor:black align:left anchor:from shift:(11,-4)
+  bar:Robert   from:01/05/1978 till:end          color:lvocals
+  bar:Robert   from:01/05/1978 till:end          color:guitar    width:9
+  bar:Robert   from:01/05/1978 till:13/12/1980   color:harm      width:3
+  bar:Robert   from:02/10/1980 till:end          color:keys      width:3
+  bar:Robert   from:02/10/1980 till:30/06/1982   color:harm      width:5
+  bar:Robert   from:02/10/1980 till:01/06/1983   color:six       width:7
+  bar:Robert   from:15/01/1984 till:15/11/1984   color:harm      width:7
+  bar:Robert   from:15/04/1987 till:end          color:six       width:7
+  bar:Robert   from:05/05/2011 till:05/06/2011   color:harm      width:5
+  bar:Robert   from:01/11/2011 till:30/11/2011   color:harm      width:5
+  bar:Robert   from:15/05/2012 till:05/10/2022   color:harm      width:5
+  bar:Porl     from:15/01/1984 till:31/01/1993   color:guitar
+  bar:Porl     from:15/01/1984 till:15/04/1987   color:sax       width:3
+  bar:Porl     from:15/01/1984 till:15/04/1987   color:keys      width:7
+  bar:Porl     from:21/06/2005 till:30/06/2010   color:guitar
+  bar:Reeves   from:15/05/2012 till:end          color:guitar
+  bar:Reeves   from:15/05/2012 till:end          color:six       width:3
+  bar:Matthieu from:05/11/1979 till:31/08/1980   color:keys
+  bar:Roger    from:15/04/1987 till:15/04/1989   color:keys width:3
+ bar:Roger    from:15/04/1989 till:24/06/1990   color:keys
+  bar:Roger    from:01/04/1995 till:24/05/2005   color:keys
+  bar:Roger    from:05/05/2011 till:end          color:keys
+  bar:Roger    from:05/05/2011 till:end          color:perc      width:3
+  bar:Perry    from:25/06/1990 till:31/01/1993   color:keys
+  bar:Perry    from:25/06/1990 till:24/05/2005   color:six       width:3
+  bar:Perry    from:25/06/1990 till:31/01/1993   color:guitar    width:7
+  bar:Perry    from:01/02/1993 till:24/05/2005   color:guitar
+  bar:Perry    from:01/02/1993 till:24/05/2005   color:keys      width:7
+  Bar:Perry    from:06/10/2022 till:31/12/2024          color:keys
+  Bar:Perry    from:06/10/2022 till:31/12/2024          color:guitar    width:7
+  Bar:Perry    from:06/10/2022 till:31/12/2024          color:six       width:3
+  bar:Michael  from:01/05/1978 till:04/11/1979   color:bass
+  bar:Michael  from:01/05/1978 till:04/11/1979   color:lvocals   width:3
+  bar:Simon    from:05/11/1979 till:30/06/1982   color:bass
+  bar:Simon    from:02/10/1980 till:30/06/1982   color:keys      width:3
+  bar:Simon    from:15/11/1984 till:end          color:bass
+ bar:Simon    from:01/11/1988 till:21/04/1992   color:keys      width:3
+  bar:Phil     from:01/06/1983 till:14/11/1984   color:bass
+  bar:Lol      from:01/05/1978 till:30/09/1982   color:drums
+  bar:Lol      from:01/01/1982 till:30/09/1982   color:keys      width:3
+  bar:Lol      from:30/06/1982 till:15/04/1989   color:keys
+  bar:Lol      from:05/05/2011 till:05/06/2011   color:keys
+  bar:Lol      from:05/05/2011 till:05/06/2011   color:perc width:3
+  bar:Lol      from:01/11/2011 till:30/11/2011   color:keys
+  bar:Lol      from:01/11/2011 till:30/11/2011   color:perc width:3
+  bar:Andy     from:01/06/1983 till:18/10/1984   color:drums
+  bar:Andy     from:01/06/1983 till:18/10/1984   color:perc      width:3
+  bar:Boris    from:18/11/1984 till:30/11/1994   color:drums
+  bar:Boris    from:18/11/1984 till:30/11/1994   color:perc      width:3
+  bar:Jason    from:01/04/1995 till:end          color:drums
+  bar:Jason    from:01/04/1995 till:end          color:perc      width:3
