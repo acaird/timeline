@@ -6,7 +6,9 @@ import (
 	"os"
 	"time"
 
+	"github.com/acaird/timeline/pkg/draw"
 	"github.com/acaird/timeline/pkg/parse"
+	"github.com/llgcode/draw2d/draw2dimg"
 )
 
 // Global Canvas Variables (Required for the execution environment)
@@ -120,8 +122,16 @@ func main() {
 		fmt.Printf("Error parsing timeline data: %v\n", err)
 		return
 	}
+	// printData(timeline)
+	drawing := draw.DrawTimeline(timeline)
+	draw2dimg.SaveToPngFile("hello.png", drawing)
+
 	// ij, _ := json.MarshalIndent(timeline, "", " ")
 	// fmt.Printf("%s\n", ij)
+
+}
+
+func printData(timeline *parse.Timeline) {
 
 	// 2. Output Summary of Parsed Data
 
@@ -175,6 +185,7 @@ func main() {
 		releaseType := event.ColorID
 		fmt.Printf("Date: %s | Type: %s (%s)\n", event.Date, releaseType, releaseColor)
 	}
+
 }
 
 func readfile(filename string) string {
