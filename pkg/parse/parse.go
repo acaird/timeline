@@ -19,13 +19,30 @@ import (
 
 // Timeline represents the entire parsed timeline configuration.
 type Timeline struct {
+	Config      Config
+	Defaults    Defaults
 	PeriodStart time.Time
 	PeriodEnd   time.Time
-	ImageSize   ImageSize
 	Colors      map[string]Color
 	Bars        map[string]Bar
 	PlotItems   []PlotItem
 	LineEvents  []LineEvents
+}
+
+// Config holds the configuration variables
+type Config struct {
+	ImageSize        ImageSize
+	ScaleMajor       Scale
+	ScaleMinor       Scale
+	DateFormat       string
+	LegendColumns    int
+	DefaultLineWidth int
+	MaxLineWidth     int
+}
+
+type Defaults struct {
+	MajorTicSize float64
+	MinorTicSize float64
 }
 
 // ImageSize stores the size of the image as specified in the file
@@ -33,6 +50,12 @@ type ImageSize struct {
 	Width        int
 	Height       int
 	Barincrement int
+}
+
+// Scale holds the scale configuration
+type Scale struct {
+	Increment int
+	Start     int
 }
 
 // Color stores the ID, actual value, and legend text for a color definition.
@@ -120,12 +143,20 @@ var plotRe = regexp.MustCompile(`^\s*bar:(\w+)\s+from:(\S+)\s+till:(\S+)\s+color
 // replace spaces, including unicode spaces
 var replaceSpacesRe = regexp.MustCompile(`\p{Zs}`)
 
+// get things out of the ScaleM* lines
+var legendIncrementRe = regexp.MustCompile(`.*\s+increment:\s*(\d+).*`)
+var legendStartRe = regexp.MustCompile(`.*\s+start:\s*(\d+).*`)
+var legendColumnsRe = regexp.MustCompile(`.*\s+columns:\s*(\d+).*`)
+
 // ParseTimeline parses the raw timeline configuration string into the Timeline struct.
 func ParseTimeline(rawConfig string) (*Timeline, error) {
 	t := &Timeline{
 		Colors: make(map[string]Color),
 		Bars:   make(map[string]Bar),
 	}
+
+	t.Defaults.MajorTicSize = 8
+	t.Defaults.MinorTicSize = 5
 
 	// Remove the surrounding MediaWiki tags and extra whitespace
 	rawConfig = strings.TrimPrefix(rawConfig, "{{#tag:timeline|\n")
@@ -136,7 +167,6 @@ func ParseTimeline(rawConfig string) (*Timeline, error) {
 	currentWidth := 0
 	lineColor := ""
 	var layout string
-	var defaultWidth int
 
 	for scanner.Scan() {
 		line := strings.TrimRightFunc(scanner.Text(), unicode.IsSpace)
@@ -196,9 +226,6 @@ func ParseTimeline(rawConfig string) (*Timeline, error) {
 					}
 
 				}
-				fmt.Printf("start: %s  end: %s\n",
-					t.PeriodStart.Format(time.RFC1123),
-					t.PeriodEnd.Format(time.RFC1123))
 			}
 			if strings.HasPrefix(line, "ImageSize") {
 				line = strings.ReplaceAll(line, "ImageSize = ", "")
@@ -207,21 +234,21 @@ func ParseTimeline(rawConfig string) (*Timeline, error) {
 					switch kv[0] {
 					case "width":
 						if kv[1] == "auto" {
-							t.ImageSize.Width = 0 // 0 can mean unspec'd
+							t.Config.ImageSize.Width = 0 // 0 can mean unspec'd
 						} else {
-							t.ImageSize.Width, _ = strconv.Atoi(kv[1])
+							t.Config.ImageSize.Width, _ = strconv.Atoi(kv[1])
 						}
 					case "height":
 						if kv[1] == "auto" {
-							t.ImageSize.Height = 0
+							t.Config.ImageSize.Height = 0
 						} else {
-							t.ImageSize.Height, _ = strconv.Atoi(kv[1])
+							t.Config.ImageSize.Height, _ = strconv.Atoi(kv[1])
 						}
 					case "barincrement":
 						if kv[1] == "auto" {
-							t.ImageSize.Barincrement = 0
+							t.Config.ImageSize.Barincrement = 0
 						} else {
-							t.ImageSize.Barincrement, _ = strconv.Atoi(kv[1])
+							t.Config.ImageSize.Barincrement, _ = strconv.Atoi(kv[1])
 						}
 					}
 				}
@@ -236,6 +263,48 @@ func ParseTimeline(rawConfig string) (*Timeline, error) {
 					layout = "2006" // yyyy
 				default:
 					layout = "02/01/2006" // dd/mm/yyyy
+				}
+			}
+			if strings.HasPrefix(line, "Legend") {
+				var err error
+				matches := legendColumnsRe.FindStringSubmatch(line)
+				if len(matches) == 2 {
+					t.Config.LegendColumns, err = strconv.Atoi(matches[1])
+					if err != nil {
+						panic("couldn't convert \"%s\" to an int")
+					}
+				}
+			}
+			if strings.HasPrefix(line, "ScaleMajor") {
+				var err error
+				matches := legendIncrementRe.FindStringSubmatch(line)
+				if len(matches) == 2 {
+					t.Config.ScaleMajor.Increment, err = strconv.Atoi(matches[1])
+					if err != nil {
+						panic("couldn't convert \"%s\" to an int")
+					}
+				}
+				matches = legendStartRe.FindStringSubmatch(line)
+				if len(matches) == 2 {
+					t.Config.ScaleMajor.Start, err = strconv.Atoi(matches[1])
+					if err != nil {
+						panic("couldn't convert \"%s\" to an int")
+					}
+				}
+			}
+			if strings.HasPrefix(line, "ScaleMinor") {
+				var err error
+				matches := legendIncrementRe.FindStringSubmatch(line)
+				t.Config.ScaleMinor.Increment, err = strconv.Atoi(matches[1])
+				if err != nil {
+					panic("couldn't convert \"%s\" to an int")
+				}
+				matches = legendStartRe.FindStringSubmatch(line)
+				if len(matches) == 2 {
+					t.Config.ScaleMinor.Start, err = strconv.Atoi(matches[1])
+					if err != nil {
+						panic("couldn't convert \"%s\" to an int")
+					}
 				}
 			}
 
@@ -272,16 +341,19 @@ func ParseTimeline(rawConfig string) (*Timeline, error) {
 						fmt.Printf("couldn't parse width: %s", errr.Error())
 						os.Exit(1)
 					}
-					defaultWidth = currentWidth
+					t.Config.DefaultLineWidth = currentWidth
+					if t.Config.DefaultLineWidth > t.Config.MaxLineWidth {
+						t.Config.MaxLineWidth = t.Config.DefaultLineWidth
+					}
 				}
-				fmt.Printf("default width: %d |%s|\n", defaultWidth, line)
 			}
+
 			// Parse plot item using the last known width
 			matches := plotRe.FindStringSubmatch(line)
 			var from, til time.Time
 			var err error
 			if len(matches) == 7 {
-				width := currentWidth
+				width := t.Config.DefaultLineWidth
 				w, _ := strconv.Atoi(matches[6])
 				if w != 0 {
 					width = w
@@ -303,7 +375,7 @@ func ParseTimeline(rawConfig string) (*Timeline, error) {
 					}
 				}
 				if matches[6] == "" {
-					width = defaultWidth
+					width = t.Config.DefaultLineWidth
 				}
 				t.PlotItems = append(t.PlotItems, PlotItem{
 					BarID:   matches[1],
