@@ -5,6 +5,7 @@ package parse
 
 import (
 	"bufio"
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -13,11 +14,11 @@ import (
 	"strings"
 	"time"
 	"unicode"
+
+	"github.com/yuseferi/zax"
 )
 
-// --- Data Structures ---
-
-// Timeline represents the entire parsed timeline configuration.
+// Timeline represents the entire parsed timeline data
 type Timeline struct {
 	Config      Config
 	Defaults    Defaults
@@ -149,7 +150,8 @@ var legendStartRe = regexp.MustCompile(`.*\s+start:\s*(\d+).*`)
 var legendColumnsRe = regexp.MustCompile(`.*\s+columns:\s*(\d+).*`)
 
 // ParseTimeline parses the raw timeline configuration string into the Timeline struct.
-func ParseTimeline(rawConfig string) (*Timeline, error) {
+func ParseTimeline(ctx context.Context, rawConfig string) (*Timeline, error) {
+	logger := zax.Get(ctx)
 	t := &Timeline{
 		Colors: make(map[string]Color),
 		Bars:   make(map[string]Bar),
@@ -207,7 +209,7 @@ func ParseTimeline(rawConfig string) (*Timeline, error) {
 					if strings.HasPrefix(tillPart, "{") {
 						end, err = parseTimeEmbed(tillPart)
 						if err != nil {
-							panic(err.Error())
+							logger.Sugar().Fatalf(err.Error())
 						}
 						tillPart = end.Format(layout)
 					}
@@ -215,14 +217,15 @@ func ParseTimeline(rawConfig string) (*Timeline, error) {
 					if err == nil {
 						t.PeriodStart = start
 					} else {
-						panic("couldn't compute date (start)")
+						logger.Sugar().Fatalf("couldn't compute start date; check format and data file")
+
 					}
 
 					end, err = time.Parse(layout, tillPart)
 					if err == nil {
 						t.PeriodEnd = end
 					} else {
-						panic("couldn't compute date (end)")
+						logger.Sugar().Fatalf("couldn't compute end date; check format and data file")
 					}
 
 				}
@@ -271,7 +274,8 @@ func ParseTimeline(rawConfig string) (*Timeline, error) {
 				if len(matches) == 2 {
 					t.Config.LegendColumns, err = strconv.Atoi(matches[1])
 					if err != nil {
-						panic("couldn't convert \"%s\" to an int")
+						logger.Sugar().Fatalf("couldn't read legend columns (\"%s\" is not an integer)",
+							matches[1])
 					}
 				}
 			}
@@ -281,14 +285,16 @@ func ParseTimeline(rawConfig string) (*Timeline, error) {
 				if len(matches) == 2 {
 					t.Config.ScaleMajor.Increment, err = strconv.Atoi(matches[1])
 					if err != nil {
-						panic("couldn't convert \"%s\" to an int")
+						logger.Sugar().Fatalf("couldn't read legend major scale (\"%s\" is not an integer)",
+							matches[1])
 					}
 				}
 				matches = legendStartRe.FindStringSubmatch(line)
 				if len(matches) == 2 {
 					t.Config.ScaleMajor.Start, err = strconv.Atoi(matches[1])
 					if err != nil {
-						panic("couldn't convert \"%s\" to an int")
+						logger.Sugar().Fatalf("couldn't read legend major start year (\"%s\" is not an integer)",
+							matches[1])
 					}
 				}
 			}
@@ -297,13 +303,17 @@ func ParseTimeline(rawConfig string) (*Timeline, error) {
 				matches := legendIncrementRe.FindStringSubmatch(line)
 				t.Config.ScaleMinor.Increment, err = strconv.Atoi(matches[1])
 				if err != nil {
-					panic("couldn't convert \"%s\" to an int")
+					if err != nil {
+						logger.Sugar().Fatalf("couldn't read legend minor scale (\"%s\" is not an integer)",
+							matches[1])
+					}
 				}
 				matches = legendStartRe.FindStringSubmatch(line)
 				if len(matches) == 2 {
 					t.Config.ScaleMinor.Start, err = strconv.Atoi(matches[1])
 					if err != nil {
-						panic("couldn't convert \"%s\" to an int")
+						logger.Sugar().Fatalf("couldn't read legend major start year (\"%s\" is not an integer)",
+							matches[1])
 					}
 				}
 			}
@@ -363,7 +373,8 @@ func ParseTimeline(rawConfig string) (*Timeline, error) {
 				} else {
 					from, err = time.Parse(layout, matches[2])
 					if err != nil {
-						panic("couldn't parse date 201")
+						logger.Sugar().Fatalf("couldn't read the start date (\"%s\" is not a date)",
+							matches[1])
 					}
 				}
 				if matches[3] == "end" {
@@ -371,7 +382,8 @@ func ParseTimeline(rawConfig string) (*Timeline, error) {
 				} else {
 					til, err = time.Parse(layout, matches[3])
 					if err != nil {
-						panic("couldn't parse date 202")
+						logger.Sugar().Fatalf("couldn't read the til date (\"%s\" is not a date)",
+							matches[1])
 					}
 				}
 				if matches[6] == "" {
@@ -398,7 +410,7 @@ func ParseTimeline(rawConfig string) (*Timeline, error) {
 				date := strings.Split(cleanLine, ":")[1]
 				d, err := time.Parse(layout, date)
 				if err != nil {
-					panic("couldn't parse date 101")
+					logger.Sugar().Fatalf("couldn't read the date in LineData (\"%s\" is not a date)", date)
 				}
 				t.LineEvents = append(t.LineEvents, LineEvents{
 					ColorID: lineColor,

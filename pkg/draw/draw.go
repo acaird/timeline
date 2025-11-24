@@ -1,6 +1,7 @@
 package draw
 
 import (
+	"context"
 	"fmt"
 	"image"
 	"image/color"
@@ -15,7 +16,7 @@ import (
 	"github.com/llgcode/draw2d/draw2dkit"
 )
 
-func DrawTimeline(t *parse.Timeline) *image.RGBA {
+func DrawTimeline(ctx context.Context, t *parse.Timeline) *image.RGBA {
 
 	var width, chartHeight int
 	fontSize := 12 // pts

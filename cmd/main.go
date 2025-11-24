@@ -1,39 +1,51 @@
 package main
 
 import (
+	"context"
 	"fmt"
-	"log"
 	"os"
 	"time"
 
 	"github.com/acaird/timeline/pkg/draw"
 	"github.com/acaird/timeline/pkg/parse"
 	"github.com/llgcode/draw2d/draw2dimg"
+	"github.com/yuseferi/zax"
+	"go.uber.org/zap"
 )
 
 // Global Canvas Variables (Required for the execution environment)
 // These are not used for timeline parsing but must be included.
-const __app_id = "timeline_app"
-const __firebase_config = "{}"
-const __initial_auth_token = ""
+// const __app_id = "timeline_app"
+// const __firebase_config = "{}"
+// const __initial_auth_token = ""
 
 func main() {
 
+	logger := zap.NewExample()
+	ctx := context.Background()
+	ctx = zax.Set(ctx, logger, []zap.Field{})
+	sugar := logger.Sugar()
+
 	args := os.Args
 	if len(args) != 2 {
-		panic(fmt.Sprintf("Usage: %s [filename]", args[0]))
+		sugar.Fatalf("Usage: %s [filename]", args[0])
 	}
-	fullRawTimelineData := readfile(args[1])
+	fullRawTimelineData := readfile(ctx, args[1])
 
 	// 1. Parse the timeline data
-	timeline, err := parse.ParseTimeline(fullRawTimelineData)
+	timeline, err := parse.ParseTimeline(ctx, fullRawTimelineData)
 	if err != nil {
 		fmt.Printf("Error parsing timeline data: %v\n", err)
 		return
 	}
 	// printData(timeline)
-	drawing := draw.DrawTimeline(timeline)
-	draw2dimg.SaveToPngFile("hello.png", drawing)
+	drawing := draw.DrawTimeline(ctx, timeline)
+	outputFilename := args[1] + ".png"
+	err = draw2dimg.SaveToPngFile(outputFilename, drawing)
+	if err != nil {
+		sugar.Fatalf("couldn't write output to \"%s\": %s", outputFilename, err.Error())
+	}
+	sugar.Infof("wrote chart to \"%s\"", outputFilename)
 
 	// ij, _ := json.MarshalIndent(timeline, "", " ")
 	// fmt.Printf("%s\n", ij)
@@ -97,10 +109,11 @@ func printData(timeline *parse.Timeline) {
 
 }
 
-func readfile(filename string) string {
+func readfile(ctx context.Context, filename string) string {
+	logger := zax.Get(ctx)
 	content, err := os.ReadFile(filename)
 	if err != nil {
-		log.Fatal(err)
+		logger.Sugar().Fatalf(err.Error())
 	}
 	return string(content)
 }
