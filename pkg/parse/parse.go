@@ -22,6 +22,7 @@ import (
 type Timeline struct {
 	Config      Config
 	Defaults    Defaults
+	Derived     Derived
 	PeriodStart time.Time
 	PeriodEnd   time.Time
 	Colors      map[string]Color
@@ -39,11 +40,24 @@ type Config struct {
 	LegendColumns    int
 	DefaultLineWidth int
 	MaxLineWidth     int
+	PlotTextColor    string
+	PlotTextSize     int
+	// Align            string // we are ignoring this for now
+	// Shift            string // we are ignoring this for now
 }
 
+// Defaults holds defaults that aren't in the config
 type Defaults struct {
 	MajorTicSize float64
 	MinorTicSize float64
+	LabelBarGap  int // the size of the gap between the label and the start of the bar
+	FontSize     int
+	Leading      int
+	Margin       float64
+}
+
+// Derived holds computed or created parts of the timeline
+type Derived struct {
 }
 
 // ImageSize stores the size of the image as specified in the file
@@ -109,7 +123,13 @@ var barRe = regexp.MustCompile(`^\s*bar:(\w+).*text:(.+?)(?:\s+|$)$`)
 var colorRe = regexp.MustCompile(`\s*id:(\S+)\s+value:(\S+)\s*(?:legend:(.+))?`)
 
 // widthRe for PlodData
-var widthRE = regexp.MustCompile(`.*width:\s*(\d+).*`)
+var widthRe = regexp.MustCompile(`.*width:\s*(\d+).*`)
+
+// plot config from the line in PlotData that looks like:
+//
+//	align:center textcolor:white width:13 fontsize:8 shift:(6,-4)
+var fontColorRe = regexp.MustCompile(`.*textcolor:\s*(\w+).*`)
+var fontSizeRe = regexp.MustCompile(`.*fontsize:\s*(\d+).*`)
 
 // Regex to capture PlotData and LineData (key:value pairs separated by spaces/tabs)
 // This is intentionally broad, refined in the parsing logic.
@@ -156,9 +176,6 @@ func ParseTimeline(ctx context.Context, rawConfig string) (*Timeline, error) {
 		Colors: make(map[string]Color),
 		Bars:   make(map[string]Bar),
 	}
-
-	t.Defaults.MajorTicSize = 8
-	t.Defaults.MinorTicSize = 5
 
 	// Remove the surrounding MediaWiki tags and extra whitespace
 	rawConfig = strings.TrimPrefix(rawConfig, "{{#tag:timeline|\n")
@@ -343,7 +360,8 @@ func ParseTimeline(ctx context.Context, rawConfig string) (*Timeline, error) {
 			line = strings.TrimSpace(line)
 			// can't do this in regex; negative look-ahead isn't supported :/
 			if !strings.Contains(strings.ToLower(line), "bar") {
-				matches := widthRE.FindStringSubmatch(line)
+				// get width
+				matches := widthRe.FindStringSubmatch(line)
 				var errr error // XXX wtah
 				if len(matches) == 2 {
 					currentWidth, errr = strconv.Atoi(matches[1])
@@ -356,6 +374,26 @@ func ParseTimeline(ctx context.Context, rawConfig string) (*Timeline, error) {
 						t.Config.MaxLineWidth = t.Config.DefaultLineWidth
 					}
 				}
+				// get fontsize for bar labels
+				matches = fontSizeRe.FindStringSubmatch(line)
+				if len(matches) == 2 {
+					fontsize, err := strconv.Atoi(matches[1])
+					t.Config.PlotTextSize = 12 // default to 12pt font
+					if err != nil {
+						logger.Error("Couldn't get fontsize from config file")
+					} else {
+						t.Config.PlotTextSize = fontsize
+					}
+				}
+				// get color for bar labels
+				matches = fontColorRe.FindStringSubmatch(line)
+				if len(matches) == 2 {
+					t.Config.PlotTextColor = "white" // default to white
+					if matches[1] != "" {
+						t.Config.PlotTextColor = matches[1]
+					}
+				}
+
 			}
 
 			// Parse plot item using the last known width
