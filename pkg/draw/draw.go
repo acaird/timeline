@@ -2,6 +2,7 @@ package draw
 
 import (
 	"context"
+	_ "embed"
 	"fmt"
 	"image"
 	"image/color"
@@ -16,34 +17,61 @@ import (
 	"github.com/llgcode/draw2d/draw2dkit"
 )
 
+//go:embed fonts/DMSans-VariableFont_opsz,wght.ttf
+var DMSans []byte
+
+//go:embed fonts/cmunrm.ttf
+var CM []byte
+
 func DrawTimeline(ctx context.Context, t *parse.Timeline) *image.RGBA {
 
-	var width, chartHeight int
 	fontSize := 12 // pts
 	leading := 8   // px (=6 pts (0.75*8)
 	margin := 5.0  // px
 
-	width = t.Config.ImageSize.Width
-	if width == 0 {
-		width = 800
+	if t.Config.ImageSize.Width == 0 {
+		t.Config.ImageSize.Width = 800
 	}
-	chartHeight = t.Config.ImageSize.Height
-	if chartHeight == 0 {
-		chartHeight = len(t.Bars)*(fontSize+leading) + leading
+	if t.Config.ImageSize.Height == 0 {
+		t.Config.ImageSize.Height = len(t.Bars)*(fontSize+leading) + leading
 	}
-	height := chartHeight * 2
+	height := t.Config.ImageSize.Height * 2
 
-	imageData := image.NewRGBA(image.Rect(0, 0, width, height))
+	imageData := image.NewRGBA(image.Rect(0, 0, t.Config.ImageSize.Width, height))
 	gc := draw2dimg.NewGraphicContext(imageData)
 
 	// draw a white box with a black edge to put everything into
 	gc.SetStrokeColor(color.Black)
 	gc.SetLineWidth(1)
-	draw2dkit.Rectangle(gc, 0, 0, float64(width), float64(height))
+	draw2dkit.Rectangle(gc, 0, 0, float64(t.Config.ImageSize.Width), float64(height))
 	gc.FillStroke()
 
 	// XXX this sucks and i want better fonts
 	gc.SetFontData(draw2d.FontData{Name: "luxi"})
+
+	// var drawFont *truetype.Font
+	// var fontData draw2d.FontData
+	// var err error
+	// font := "ComputerModern"
+	// if font == "DMSans" {
+	// 	fontBytes := DMSans
+	// 	drawFont, err = truetype.Parse(fontBytes)
+	// 	if err != nil {
+	// 		log.Fatal(err)
+	// 	}
+	// 	fontData = draw2d.FontData{Name: "DMSans", Style: draw2d.FontStyleNormal}
+	// }
+	// if font == "ComputerModern" {
+	// 	fontBytes := CM
+	// 	drawFont, err = truetype.Parse(fontBytes)
+	// 	if err != nil {
+	// 		log.Fatal(err)
+	// 	}
+	// 	fontData = draw2d.FontData{Name: "FFTM", Style: draw2d.FontStyleNormal}
+	// }
+	// // Register the font with draw2d
+	// draw2d.RegisterFont(fontData, drawFont)
+	// gc.SetFontData(fontData)
 	gc.SetFontSize(12)
 	gc.SetFillColor(color.Black)
 
@@ -66,7 +94,7 @@ func DrawTimeline(ctx context.Context, t *parse.Timeline) *image.RGBA {
 		}
 	}
 
-	totalBarPixels := width - int(maxLabelWidth) - int(margin) - t.Defaults.LabelBarGap
+	totalBarPixels := t.Config.ImageSize.Width - int(maxLabelWidth) - int(margin) - t.Defaults.LabelBarGap
 	totalDuration := t.PeriodEnd.Sub(t.PeriodStart)
 	barLeft := float64(int(maxLabelWidth) + t.Defaults.LabelBarGap)
 	for i, person := range people {
@@ -129,10 +157,10 @@ func DrawTimeline(ctx context.Context, t *parse.Timeline) *image.RGBA {
 	gc.SetFillColor(color.RGBA{0, 0, 0, 255})
 	gc.SetStrokeColor(color.RGBA{0, 0, 0, 255})
 	gc.MoveTo(barLeft+float64(t.Defaults.LabelBarGap), 0)
-	gc.LineTo(barLeft+float64(t.Defaults.LabelBarGap), float64(chartHeight))
+	gc.LineTo(barLeft+float64(t.Defaults.LabelBarGap), float64(t.Config.ImageSize.Height))
 	gc.Stroke()
-	gc.MoveTo(barLeft+float64(t.Defaults.LabelBarGap), float64(chartHeight))
-	gc.LineTo(float64(width-1), float64(chartHeight))
+	gc.MoveTo(barLeft+float64(t.Defaults.LabelBarGap), float64(t.Config.ImageSize.Height))
+	gc.LineTo(float64(t.Config.ImageSize.Width-1), float64(t.Config.ImageSize.Height))
 	gc.Stroke()
 	// x-axis tics
 	firstJan1 := time.Date(t.Config.ScaleMinor.Start,
@@ -140,11 +168,11 @@ func DrawTimeline(ctx context.Context, t *parse.Timeline) *image.RGBA {
 	lastJan1 := time.Date(t.PeriodEnd.Year(),
 		time.January, 1, 0, 0, 0, 0, t.PeriodEnd.Location())
 	_ = drawTics(firstJan1.Year(), lastJan1.Year(), false, t.Defaults.MinorTicSize, gc, t,
-		totalDuration, totalBarPixels, chartHeight, leading, t.Config.ScaleMinor.Increment, barLeft)
+		totalDuration, totalBarPixels, t.Config.ImageSize.Height, leading, t.Config.ScaleMinor.Increment, barLeft)
 	firstJan1 = time.Date(t.Config.ScaleMajor.Start,
 		time.January, 1, 0, 0, 0, 0, t.PeriodStart.Location())
 	yPos := drawTics(firstJan1.Year(), lastJan1.Year(), true, t.Defaults.MajorTicSize, gc, t,
-		totalDuration, totalBarPixels, chartHeight, leading, t.Config.ScaleMajor.Increment, barLeft)
+		totalDuration, totalBarPixels, t.Config.ImageSize.Height, leading, t.Config.ScaleMajor.Increment, barLeft)
 
 	// LineEvents are just albums/live things; we are ignoring the
 	// layer for now and drawing them on top
@@ -154,7 +182,7 @@ func DrawTimeline(ctx context.Context, t *parse.Timeline) *image.RGBA {
 		barFrac := float64(
 			e.Date.Sub(t.PeriodStart)) / float64(totalDuration)
 		gc.MoveTo(float64(totalBarPixels)*barFrac+barLeft+float64(t.Defaults.LabelBarGap), 0)
-		gc.LineTo(float64(totalBarPixels)*barFrac+barLeft+float64(t.Defaults.LabelBarGap), float64(chartHeight))
+		gc.LineTo(float64(totalBarPixels)*barFrac+barLeft+float64(t.Defaults.LabelBarGap), float64(t.Config.ImageSize.Height))
 		gc.Stroke()
 
 	}
