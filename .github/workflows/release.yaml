@@ -43,13 +43,13 @@ jobs:
           # List files to verify
           ls -l dist/
 
-      - name: Upload Artifacts
-        uses: svenstaro/upload-release-action@v2
-        with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          tag: ${{ github.ref }}
-          file: ./dist/*
-          file_glob: true
+      # - name: Upload Artifacts
+      #   uses: svenstaro/upload-release-action@v2
+      #   with:
+      #     repo_token: ${{ secrets.GITHUB_TOKEN }}
+      #     tag: ${{ github.ref }}
+      #     file: ./dist/*
+      #     file_glob: true
 
       - name: Create Release and Upload Assets
         uses: softprops/action-gh-release@v2
