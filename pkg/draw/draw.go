@@ -66,10 +66,9 @@ func DrawTimeline(ctx context.Context, t *parse.Timeline) *image.RGBA {
 		}
 	}
 
-	labelBarGap := 5 // pixels between the label (name) and the bar
-	totalBarPixels := width - int(maxLabelWidth) - int(margin) - labelBarGap
+	totalBarPixels := width - int(maxLabelWidth) - int(margin) - t.Defaults.LabelBarGap
 	totalDuration := t.PeriodEnd.Sub(t.PeriodStart)
-	barLeft := float64(int(maxLabelWidth) + labelBarGap)
+	barLeft := float64(int(maxLabelWidth) + t.Defaults.LabelBarGap)
 	for i, person := range people {
 		// write the name right-justified
 		left, _, right, _ := gc.GetStringBounds(person)
@@ -81,8 +80,8 @@ func DrawTimeline(ctx context.Context, t *parse.Timeline) *image.RGBA {
 		// draw default gray bar
 		gc.SetLineWidth(float64(t.Config.DefaultLineWidth))
 		gc.SetStrokeColor(color.RGBA{R: 242, G: 242, B: 242, A: 255})
-		gc.MoveTo(barLeft+float64(labelBarGap), yBarPos)
-		gc.LineTo(float64(totalBarPixels)+barLeft+float64(labelBarGap)-1, yBarPos)
+		gc.MoveTo(barLeft+float64(t.Defaults.LabelBarGap), yBarPos)
+		gc.LineTo(float64(totalBarPixels)+barLeft+float64(t.Defaults.LabelBarGap)-1, yBarPos)
 		gc.Stroke()
 		// draw some bars
 		for _, item := range t.PlotItems {
@@ -96,30 +95,43 @@ func DrawTimeline(ctx context.Context, t *parse.Timeline) *image.RGBA {
 				float64(totalDuration)
 			barEndFrac := float64(item.Til.Sub(t.PeriodStart)) /
 				float64(totalDuration)
-
-			gc.SetStrokeColor(GetRGBAfromName(t.Colors[item.ColorID].Value))
-			gc.SetLineWidth(width)
 			barSegmentStart := float64(totalBarPixels)*barStartFrac +
 				barLeft +
-				float64(labelBarGap)
+				float64(t.Defaults.LabelBarGap)
 			barSegmentEnd := float64(totalBarPixels)*barEndFrac +
 				barLeft +
-				float64(labelBarGap)
+				float64(t.Defaults.LabelBarGap)
 			if barSegmentEnd >= float64(t.Config.ImageSize.Width) {
 				barSegmentEnd -= 5
 			}
+			gc.SetStrokeColor(GetRGBAfromName(t.Colors[item.ColorID].Value))
+			gc.SetLineWidth(width)
 			gc.MoveTo(barSegmentStart, yBarPos)
 			gc.LineTo(barSegmentEnd, yBarPos)
 			gc.Stroke()
+			if item.Text != "" {
+				top, _, _, bottom := gc.GetStringBounds(item.Text)
+				gc.SetFontSize(8)
+				// gc.SetFillColor(color.RGBA{R: 255, G: 255, B: 255, A: 255})
+				gc.SetFillColor(GetRGBAfromName(t.Config.PlotTextColor))
+				textYPos := yBarPos + (float64(t.Config.MaxLineWidth)-bottom+top)/4
+				gc.FillStringAt(item.Text, barSegmentStart+float64(t.Defaults.LabelBarGap),
+					textYPos)
+				gc.Stroke()
+				gc.SetFontSize(12)
+				gc.SetStrokeColor(color.RGBA{R: 0, G: 0, B: 0, A: 255})
+				gc.SetFillColor(color.RGBA{R: 0, G: 0, B: 0, A: 255})
+			}
 		}
 	}
 	// chart borders
 	gc.SetLineWidth(1)
-	gc.SetStrokeColor(color.RGBA{R: 0, G: 0, B: 0, A: 255})
-	gc.MoveTo(barLeft+float64(labelBarGap), 0)
-	gc.LineTo(barLeft+float64(labelBarGap), float64(chartHeight))
+	gc.SetFillColor(color.RGBA{0, 0, 0, 255})
+	gc.SetStrokeColor(color.RGBA{0, 0, 0, 255})
+	gc.MoveTo(barLeft+float64(t.Defaults.LabelBarGap), 0)
+	gc.LineTo(barLeft+float64(t.Defaults.LabelBarGap), float64(chartHeight))
 	gc.Stroke()
-	gc.MoveTo(barLeft+float64(labelBarGap), float64(chartHeight))
+	gc.MoveTo(barLeft+float64(t.Defaults.LabelBarGap), float64(chartHeight))
 	gc.LineTo(float64(width-1), float64(chartHeight))
 	gc.Stroke()
 	// x-axis tics
@@ -128,13 +140,11 @@ func DrawTimeline(ctx context.Context, t *parse.Timeline) *image.RGBA {
 	lastJan1 := time.Date(t.PeriodEnd.Year(),
 		time.January, 1, 0, 0, 0, 0, t.PeriodEnd.Location())
 	_ = drawTics(firstJan1.Year(), lastJan1.Year(), false, t.Defaults.MinorTicSize, gc, t,
-		totalDuration, totalBarPixels, chartHeight, labelBarGap,
-		leading, t.Config.ScaleMinor.Increment, barLeft)
+		totalDuration, totalBarPixels, chartHeight, leading, t.Config.ScaleMinor.Increment, barLeft)
 	firstJan1 = time.Date(t.Config.ScaleMajor.Start,
 		time.January, 1, 0, 0, 0, 0, t.PeriodStart.Location())
 	yPos := drawTics(firstJan1.Year(), lastJan1.Year(), true, t.Defaults.MajorTicSize, gc, t,
-		totalDuration, totalBarPixels, chartHeight, labelBarGap,
-		leading, t.Config.ScaleMajor.Increment, barLeft)
+		totalDuration, totalBarPixels, chartHeight, leading, t.Config.ScaleMajor.Increment, barLeft)
 
 	// LineEvents are just albums/live things; we are ignoring the
 	// layer for now and drawing them on top
@@ -143,8 +153,8 @@ func DrawTimeline(ctx context.Context, t *parse.Timeline) *image.RGBA {
 		gc.SetStrokeColor(GetRGBAfromName(t.Colors[e.ColorID].Value))
 		barFrac := float64(
 			e.Date.Sub(t.PeriodStart)) / float64(totalDuration)
-		gc.MoveTo(float64(totalBarPixels)*barFrac+barLeft+float64(labelBarGap), 0)
-		gc.LineTo(float64(totalBarPixels)*barFrac+barLeft+float64(labelBarGap), float64(chartHeight))
+		gc.MoveTo(float64(totalBarPixels)*barFrac+barLeft+float64(t.Defaults.LabelBarGap), 0)
+		gc.LineTo(float64(totalBarPixels)*barFrac+barLeft+float64(t.Defaults.LabelBarGap), float64(chartHeight))
 		gc.Stroke()
 
 	}
@@ -157,7 +167,14 @@ func DrawTimeline(ctx context.Context, t *parse.Timeline) *image.RGBA {
 	var legendItems []string
 	// get the legend items in the correct order
 	for _, plotItem := range t.PlotItems {
+		// don't add it to the list more than once
 		if slices.Contains(legendItems, plotItem.ColorID) {
+			continue
+		}
+		// PlotItems with Text don't need to go into the
+		// legend because they get the Text written on them in
+		// the chart
+		if plotItem.Text != "" {
 			continue
 		}
 		legendItems = append(legendItems, plotItem.ColorID)
@@ -169,37 +186,41 @@ func DrawTimeline(ctx context.Context, t *parse.Timeline) *image.RGBA {
 		}
 		legendItems = append(legendItems, lineEvent.ColorID)
 	}
-
+	// draw the legend
+	gc.SetFontSize(12)
 	for _, legendItem := range legendItems {
-		for _, color := range t.Colors {
-			if color.ID != legendItem {
+		for _, colorItem := range t.Colors {
+			if colorItem.ID != legendItem {
 				continue
 			}
-			left, top, right, bottom := gc.GetStringBounds(color.Legend)
+			left, top, right, bottom := gc.GetStringBounds(colorItem.Legend)
 			textSize := right - left
-			if textSize+float64(t.Config.MaxLineWidth)+float64(labelBarGap)+5 > colWidth {
-				colWidth = right - left + float64(t.Config.MaxLineWidth) +
-					float64(labelBarGap) + 5
+			textPos := textSize +
+				float64(t.Config.MaxLineWidth) +
+				float64(t.Defaults.LabelBarGap) +
+				float64(t.Defaults.LabelBarGap)
+			if textPos > colWidth {
+				colWidth = textPos
 			}
 			if i == numLegendItemsPerColumn {
 				col++
-				legendXpos += colWidth
-				colWidth = 0
+				legendXpos = legendXpos + colWidth
 				i = 0
 			}
 			y := yPos +
-				float64(i+1)*(float64(fontSize)*4/3+float64(labelBarGap))
+				float64(i+1)*(float64(fontSize)*4/3+float64(t.Defaults.LabelBarGap))
 			// draw little colored box for the legend (really a 13x13 line)
-			gc.SetStrokeColor(GetRGBAfromName(color.Value))
+			gc.SetStrokeColor(GetRGBAfromName(colorItem.Value))
 			gc.SetLineWidth(float64(t.Config.MaxLineWidth))
-			gc.MoveTo(legendXpos+float64(labelBarGap), y)
-			gc.LineTo(legendXpos+float64(labelBarGap)+
+			gc.MoveTo(legendXpos+float64(t.Defaults.LabelBarGap), y)
+			gc.LineTo(legendXpos+float64(t.Defaults.LabelBarGap)+
 				float64(t.Config.MaxLineWidth), y)
 			gc.Stroke()
 			// write the legend text
-			gc.FillStringAt(color.Legend,
-				legendXpos+float64(labelBarGap)+
-					float64(t.Config.MaxLineWidth)+5, y+(bottom-top)/2)
+			gc.FillStringAt(colorItem.Legend,
+				legendXpos+float64(t.Config.MaxLineWidth)+float64(t.Defaults.LabelBarGap)+
+					float64(t.Defaults.LabelBarGap),
+				y+(bottom-top)/2)
 			i++
 		}
 	}
@@ -213,23 +234,25 @@ func drawTics(
 	gc *draw2dimg.GraphicContext,
 	t *parse.Timeline,
 	totalDuration time.Duration,
-	totalBarPixels, chartHeight, labelBarGap, leading, step int,
+	totalBarPixels, chartHeight, leading, step int,
 	barLeft float64) float64 {
 	var yPos float64
 	for i := startYear; i <= endYear; i = i + step {
 		ticFrac := float64(
 			time.Date(i, time.January, 1, 0, 0, 0, 0, time.Now().Location()).
 				Sub(t.PeriodStart)) / float64(totalDuration)
-		gc.MoveTo(float64(totalBarPixels)*ticFrac+barLeft+float64(labelBarGap),
+		gc.SetFillColor(color.RGBA{0, 0, 0, 255})
+		gc.SetStrokeColor(color.RGBA{0, 0, 0, 255})
+		gc.MoveTo(float64(totalBarPixels)*ticFrac+barLeft+float64(t.Defaults.LabelBarGap),
 			float64(chartHeight))
-		gc.LineTo(float64(totalBarPixels)*ticFrac+barLeft+float64(labelBarGap),
+		gc.LineTo(float64(totalBarPixels)*ticFrac+barLeft+float64(t.Defaults.LabelBarGap),
 			float64(chartHeight)+size)
 		gc.Stroke()
 		if label {
 			left, top, right, bottom := gc.GetStringBounds(fmt.Sprintf("%d", i))
 			yPos = float64(chartHeight) + (bottom - top) + 8 + float64(leading)/2
 			gc.FillStringAt(fmt.Sprintf("%d", i),
-				float64(totalBarPixels)*ticFrac+barLeft+float64(labelBarGap)-
+				float64(totalBarPixels)*ticFrac+barLeft+float64(t.Defaults.LabelBarGap)-
 					((left+right)/2),
 				yPos) // magic 8
 		}
