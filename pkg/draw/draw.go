@@ -12,9 +12,11 @@ import (
 	"time"
 
 	"github.com/acaird/timeline/pkg/parse" // XXX this is not correct, but we can fix it later
+	"github.com/golang/freetype/truetype"
 	"github.com/llgcode/draw2d"
 	"github.com/llgcode/draw2d/draw2dimg"
 	"github.com/llgcode/draw2d/draw2dkit"
+	"github.com/yuseferi/zax"
 )
 
 //go:embed fonts/DMSans-VariableFont_opsz,wght.ttf
@@ -24,6 +26,7 @@ var DMSans []byte
 var CM []byte
 
 func DrawTimeline(ctx context.Context, t *parse.Timeline) *image.RGBA {
+	logger := zax.Get(ctx)
 
 	fontSize := 12 // pts
 	leading := 8   // px (=6 pts (0.75*8)
@@ -46,51 +49,47 @@ func DrawTimeline(ctx context.Context, t *parse.Timeline) *image.RGBA {
 	draw2dkit.Rectangle(gc, 0, 0, float64(t.Config.ImageSize.Width), float64(height))
 	gc.FillStroke()
 
-	// XXX this sucks and i want better fonts
-	gc.SetFontData(draw2d.FontData{Name: "luxi"})
-
-	// var drawFont *truetype.Font
-	// var fontData draw2d.FontData
-	// var err error
-	// font := "ComputerModern"
-	// if font == "DMSans" {
-	// 	fontBytes := DMSans
-	// 	drawFont, err = truetype.Parse(fontBytes)
-	// 	if err != nil {
-	// 		log.Fatal(err)
-	// 	}
-	// 	fontData = draw2d.FontData{Name: "DMSans", Style: draw2d.FontStyleNormal}
-	// }
-	// if font == "ComputerModern" {
-	// 	fontBytes := CM
-	// 	drawFont, err = truetype.Parse(fontBytes)
-	// 	if err != nil {
-	// 		log.Fatal(err)
-	// 	}
-	// 	fontData = draw2d.FontData{Name: "FFTM", Style: draw2d.FontStyleNormal}
-	// }
-	// // Register the font with draw2d
-	// draw2d.RegisterFont(fontData, drawFont)
-	// gc.SetFontData(fontData)
+	var drawFont *truetype.Font
+	var fontData draw2d.FontData
+	var err error
+	switch t.Defaults.FontFace {
+	case "DMSans":
+		fontBytes := DMSans
+		drawFont, err = truetype.Parse(fontBytes)
+		if err != nil {
+			logger.Sugar().Fatalf("Couldn't load DMSans font: %w", err.Error())
+		}
+		fontData = draw2d.FontData{Name: "DMSans", Style: draw2d.FontStyleNormal}
+	case "ComputerModernRoman":
+		fontBytes := CM
+		drawFont, err = truetype.Parse(fontBytes)
+		if err != nil {
+			logger.Sugar().Fatalf("Couldn't load ComputerModernRoman font: %w", err.Error())
+		}
+		fontData = draw2d.FontData{Name: "CMUSerif-Roman", Style: draw2d.FontStyleNormal}
+	case "Luxi":
+	default:
+		gc.SetFontData(draw2d.FontData{Name: "luxi"})
+	}
+	// Register the font with draw2d
+	draw2d.RegisterFont(fontData, drawFont)
+	gc.SetFontData(fontData)
 	gc.SetFontSize(12)
 	gc.SetFillColor(color.Black)
 
-	// XXX this can all be improved and collapsed now that it is
-	// only used to find the widest label
 	people := []string{}
+	var maxLabelWidth float64
+	// make a list of the people and find the widest text
 	for _, item := range t.PlotItems {
 		barInfo := t.Bars[item.BarID]
 		person := strings.ReplaceAll(barInfo.Text, "\"", "")
-		if !slices.Contains(people, person) {
-			people = append(people, person)
-		}
-	}
-	var maxLabelWidth float64
-	for _, person := range people {
 		left, _, right, _ := gc.GetStringBounds(person)
 		width := right - left
 		if width > maxLabelWidth {
 			maxLabelWidth = width
+		}
+		if !slices.Contains(people, person) {
+			people = append(people, person)
 		}
 	}
 

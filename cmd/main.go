@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/acaird/timeline/pkg/draw"
@@ -22,12 +23,18 @@ func main() {
 	ctx = zax.Set(ctx, logger, []zap.Field{})
 	sugar := logger.Sugar()
 
+	// DMSans: https://fonts.google.com/specimen/DM+Sans
+	// ComputerModernRoman: https://sourceforge.net/projects/cm-unicode/
+	// Luxi: https://go.dev/blog/go-fonts
+	fontList := []string{"DMSans", "ComputerModernRoman", "Luxi"}
+
 	textOutput := flag.Bool("t", false, "enable verbose text output")
 	jsonOutput := flag.Bool("j", false, "enable verbose JSON output")
 	majorTicSize := flag.Int("tM", 8, "length of major tics on x-axis (px)")
 	minorTicSize := flag.Int("tm", 5, "length of major tics on x-axis (px)")
 	labelBarGap := flag.Int("labelbargap", 5, "gap between the label and the start of the bar (px)")
 	outputFileName := flag.String("o", "", "name of the output file (default: inputfile+.png)")
+	font := flag.String("font", "DMSans", fmt.Sprintf("one of: %s", strings.Join(fontList, ", ")))
 	flag.Parse()
 	args := flag.Args()
 
@@ -46,6 +53,7 @@ func main() {
 	timeline.Defaults.MajorTicSize = float64(*majorTicSize)
 	timeline.Defaults.MinorTicSize = float64(*minorTicSize)
 	timeline.Defaults.LabelBarGap = *labelBarGap
+	timeline.Defaults.FontFace = *font
 
 	if *textOutput == true {
 		printData(timeline)

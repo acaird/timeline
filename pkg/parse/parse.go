@@ -54,6 +54,7 @@ type Defaults struct {
 	FontSize     int
 	Leading      int
 	Margin       float64
+	FontFace     string
 }
 
 // Derived holds computed or created parts of the timeline
@@ -360,7 +361,7 @@ func ParseTimeline(ctx context.Context, rawConfig string) (*Timeline, error) {
 			line = strings.TrimSpace(line)
 			// can't do this in regex; negative look-ahead isn't supported :/
 			if !strings.Contains(strings.ToLower(line), "bar") {
-				// get width
+				// get string width
 				matches := widthRe.FindStringSubmatch(line)
 				var errr error // XXX wtah
 				if len(matches) == 2 {
