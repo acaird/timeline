@@ -15,12 +15,6 @@ import (
 	"go.uber.org/zap"
 )
 
-// Global Canvas Variables (Required for the execution environment)
-// These are not used for timeline parsing but must be included.
-// const __app_id = "timeline_app"
-// const __firebase_config = "{}"
-// const __initial_auth_token = ""
-
 func main() {
 
 	logger := zap.NewExample()
@@ -28,13 +22,12 @@ func main() {
 	ctx = zax.Set(ctx, logger, []zap.Field{})
 	sugar := logger.Sugar()
 
-	// 805-465-4033  roxanne
-
 	textOutput := flag.Bool("t", false, "enable verbose text output")
 	jsonOutput := flag.Bool("j", false, "enable verbose JSON output")
 	majorTicSize := flag.Int("tM", 8, "length of major tics on x-axis (px)")
 	minorTicSize := flag.Int("tm", 5, "length of major tics on x-axis (px)")
 	labelBarGap := flag.Int("labelbargap", 5, "gap between the label and the start of the bar (px)")
+	outputFileName := flag.String("o", "", "name of the output file (default: inputfile+.png)")
 	flag.Parse()
 	args := flag.Args()
 
@@ -67,18 +60,22 @@ func main() {
 
 	drawing := draw.DrawTimeline(ctx, timeline)
 
-	outputFilename := args[0] + ".png"
-	err = draw2dimg.SaveToPngFile(outputFilename, drawing)
-	if err != nil {
-		sugar.Fatalf("couldn't write output to \"%s\": %s", outputFilename, err.Error())
+	var output string
+	if *outputFileName == "" {
+		output = args[0] + ".png"
+	} else {
+		output = *outputFileName
 	}
-	sugar.Infof("wrote chart to \"%s\"", outputFilename)
+
+	err = draw2dimg.SaveToPngFile(output, drawing)
+	if err != nil {
+		sugar.Fatalf("couldn't write output to \"%s\": %s", output, err.Error())
+	}
+	sugar.Infof("wrote chart to \"%s\"", output)
 
 }
 
 func printData(timeline *parse.Timeline) {
-
-	// 2. Output Summary of Parsed Data
 
 	fmt.Println("--- Parsed Config Summary ---")
 
