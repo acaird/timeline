@@ -96,6 +96,7 @@ func DrawTimeline(ctx context.Context, t *parse.Timeline) *image.RGBA {
 	totalBarPixels := t.Config.ImageSize.Width - int(maxLabelWidth) - int(margin) - t.Defaults.LabelBarGap
 	totalDuration := t.PeriodEnd.Sub(t.PeriodStart)
 	barLeft := float64(int(maxLabelWidth) + t.Defaults.LabelBarGap)
+	// people's names and their bars and any bar text
 	for i, person := range people {
 		// write the name right-justified
 		left, _, right, _ := gc.GetStringBounds(person)
@@ -161,13 +162,14 @@ func DrawTimeline(ctx context.Context, t *parse.Timeline) *image.RGBA {
 	gc.MoveTo(barLeft+float64(t.Defaults.LabelBarGap), float64(t.Config.ImageSize.Height))
 	gc.LineTo(float64(t.Config.ImageSize.Width-1), float64(t.Config.ImageSize.Height))
 	gc.Stroke()
-	// x-axis tics
+	// minor x-axis tics
 	firstJan1 := time.Date(t.Config.ScaleMinor.Start,
 		time.January, 1, 0, 0, 0, 0, t.PeriodStart.Location())
 	lastJan1 := time.Date(t.PeriodEnd.Year(),
 		time.January, 1, 0, 0, 0, 0, t.PeriodEnd.Location())
 	_ = drawTics(firstJan1.Year(), lastJan1.Year(), false, t.Defaults.MinorTicSize, gc, t,
 		totalDuration, totalBarPixels, t.Config.ImageSize.Height, leading, t.Config.ScaleMinor.Increment, barLeft)
+	// major x-axis tics
 	firstJan1 = time.Date(t.Config.ScaleMajor.Start,
 		time.January, 1, 0, 0, 0, 0, t.PeriodStart.Location())
 	yPos := drawTics(firstJan1.Year(), lastJan1.Year(), true, t.Defaults.MajorTicSize, gc, t,
