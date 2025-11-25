@@ -11,7 +11,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/acaird/timeline/pkg/parse" // XXX this is not correct, but we can fix it later
+	// i'm not thrilled that parse is the parent, but also it sort
+	// of makes sense
+	"github.com/acaird/timeline/pkg/parse"
 	"github.com/golang/freetype/truetype"
 	"github.com/llgcode/draw2d"
 	"github.com/llgcode/draw2d/draw2dimg"

@@ -363,11 +363,11 @@ func ParseTimeline(ctx context.Context, rawConfig string) (*Timeline, error) {
 			if !strings.Contains(strings.ToLower(line), "bar") {
 				// get string width
 				matches := widthRe.FindStringSubmatch(line)
-				var errr error // XXX wtah
+				var err error
 				if len(matches) == 2 {
-					currentWidth, errr = strconv.Atoi(matches[1])
-					if errr != nil {
-						fmt.Printf("couldn't parse width: %s", errr.Error())
+					currentWidth, err = strconv.Atoi(matches[1])
+					if err != nil {
+						fmt.Printf("couldn't parse width: %s", err.Error())
 						os.Exit(1)
 					}
 					t.Config.DefaultLineWidth = currentWidth
@@ -435,7 +435,6 @@ func ParseTimeline(ctx context.Context, rawConfig string) (*Timeline, error) {
 					ColorID: matches[4],
 					Width:   width, // Use the last parsed width
 					Text:    matches[5],
-					// XXX Text:    strings.TrimSpace(strings.ReplaceAll(matches[5], "_", " ")),
 				})
 			}
 
