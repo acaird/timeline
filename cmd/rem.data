@@ -1,0 +1,118 @@
+ImageSize  = width:700 height:auto barincrement:20
+PlotArea   = left:100 bottom:110 top:5 right:0
+Alignbars  = justify
+DateFormat = dd/mm/yyyy
+Period     = from:01/01/1980 till:14/06/2024
+TimeAxis   = orientation:horizontal format:yyyy
+ScaleMinor = start:1980 increment:1
+ScaleMajor = start:1980 increment:5
+Legend     = position:bottom orientation:vertical columns:3
+
+Colors =
+ id:lv    value:red         legend:Lead_vocals
+ Id:bl    value:coral       legend:Backing_&_occasional_lead_vocals
+ id:bv    value:pink        legend:Backing_vocals
+ id:g     value:green       legend:Guitar
+ id:m     value:drabgreen   legend:Mandolin,_banjo
+ id:k     value:purple      legend:Keyboards
+ id:b     value:blue        legend:Bass
+ id:d     value:orange      legend:Drums
+ id:p     value:claret      legend:Percussion
+ id:st    value:yellow      legend:Session/Touring
+ id:bar   value:black       legend:Studio_album
+ id:bbars value:gray(0.95)
+
+BackgroundColors = bars:bbars
+
+LineData =
+ color:bar layer:back
+  at:12/04/1983
+  at:09/04/1984
+  at:10/06/1985
+  at:28/07/1986
+  at:01/09/1987
+  at:07/11/1988
+  at:12/03/1991
+  at:05/10/1992
+  at:27/09/1994
+  at:09/09/1996
+  at:26/10/1998
+  at:13/11/2000
+  at:05/10/2004
+  at:31/03/2008
+  at:07/03/2011
+
+BarData =
+  bar:Stipe        text:"Michael Stipe"
+  bar:Buck         text:"Peter Buck"
+  bar:Fowler       text:"Buren Fowler"
+  bar:Holsapple    text:"Peter Holsapple"
+  bar:December     text:"Nathan December"
+  bar:McCaughey    text:"Scott McCaughey"
+  bar:Stringfellow text:"Ken Stringfellow"
+  bar:Mills        text:"Mike Mills"
+  bar:Berry        text:"Bill Berry"
+  bar:Waronker     text:"Joey Waronker"
+  bar:Rieflin      text:"Bill Rieflin"
+  bar:Martin       text:"Barrett Martin"
+
+PlotData =
+  width:11
+  bar:Berry             from:start      till:30/10/1997 color:d
+  bar:Berry             from:start      till:30/10/1997 color:p     width:7
+  bar:Berry             from:start      till:30/10/1997 color:bv    width:3
+  bar:Berry             from:10/10/2003 till:10/10/2003 color:d
+  bar:Berry             from:10/10/2003 till:10/10/2003 color:bv    width:3
+  bar:Berry             from:10/10/2003 till:10/10/2003 color:st    width:7
+  bar:Berry             from:08/10/2005 till:08/10/2005 color:d
+  bar:Berry             from:08/10/2005 till:08/10/2005 color:bv    width:3
+  bar:Berry             from:08/10/2005 till:08/10/2005 color:st    width:7
+  bar:Berry             from:01/04/2006 till:01/04/2006 color:d
+  bar:Berry             from:01/04/2006 till:01/04/2006 color:bv    width:3
+  bar:Berry             from:01/04/2006 till:01/04/2006 color:st    width:7
+  bar:Berry             from:11/09/2006 till:16/09/2006 color:d
+  bar:Berry             from:11/09/2006 till:16/09/2006 color:bv    width:3
+  bar:Berry             from:11/09/2006 till:16/09/2006 color:st    width:7
+  bar:Berry             from:12/03/2007 till:12/03/2007 color:d
+  bar:Berry             from:12/03/2007 till:12/03/2007 color:bv    width:3
+  bar:Berry             from:12/03/2007 till:12/03/2007 color:st    width:7
+  bar:Berry             from:13/06/2024 till:13/06/2024 color:p
+  bar:Buck              from:start      till:21/09/2011 color:g
+  bar:Buck              from:01/02/1985 till:21/09/2011 color:m     width:3
+  bar:Buck              from:12/06/2024 till:12/06/2024 color:m
+  bar:Buck              from:13/06/2024 till:13/06/2024 color:m
+  bar:Mills             from:start      till:21/09/2011 color:b
+  bar:Mills             from:start      till:21/09/2011 color:bl    width:3
+  bar:Mills             from:start      till:21/09/2011 color:k     width:7
+  bar:Mills             from:13/06/2024 till:13/06/2024 color:g
+  bar:Mills             from:13/06/2024 till:13/06/2024 color:bv    width:3
+  bar:Stipe             from:start      till:21/09/2011 color:lv
+  bar:Stipe             from:13/06/2024 till:13/06/2024 color:lv
+  bar:Fowler            from:05/09/1986 till:28/11/1987 color:g
+  bar:Fowler            from:05/09/1986 till:28/11/1987 color:st    width:3
+  bar:Holsapple         from:03/01/1989 till:28/04/1991 color:g
+  bar:Holsapple         from:03/01/1989 till:28/04/1991 color:b     width:7
+  bar:Holsapple         from:03/01/1989 till:28/04/1991 color:k     width:5
+  bar:Holsapple         from:03/01/1989 till:28/04/1991 color:st    width:3
+  bar:McCaughey         from:12/11/1994 till:23/10/1998 color:k
+  bar:McCaughey         from:12/11/1994 till:23/10/1998 color:g width:7
+  bar:McCaughey         from:12/11/1994 till:21/09/2011 color:bv    width:3
+  bar:McCaughey         from:23/10/1998 till:21/09/2011 color:g
+  bar:McCaughey         from:23/10/1998 till:21/09/2011 color:k     width:7
+  bar:McCaughey         from:12/11/1994 till:21/09/2011 color:st    width:5
+  bar:December          from:12/11/1994 till:21/11/1995 color:g
+  bar:December          from:12/11/1994 till:21/11/1995 color:p     width:7
+  bar:December          from:12/11/1994 till:21/11/1995 color:st    width:3
+  bar:Waronker          from:14/06/1998 till:14/02/2002 color:d
+  bar:Waronker          from:14/06/1998 till:14/02/2002 color:p     width:7
+  bar:Waronker          from:14/06/1998 till:14/02/2002 color:st    width:3
+  bar:Martin            from:14/06/1998 till:26/10/1998 color:p
+  bar:Martin            from:14/06/1998 till:26/10/1998 color:d     width:7
+  bar:Martin            from:14/06/1998 till:26/10/1998 color:st    width:3
+  bar:Stringfellow      from:23/10/1998 till:16/07/2005 color:k
+  bar:Stringfellow      from:23/10/1998 till:16/07/2005 color:b     width:7
+  bar:Stringfellow      from:23/10/1998 till:16/07/2005 color:bv    width:3
+  bar:Stringfellow      from:23/10/1998 till:16/07/2005 color:st    width:5
+  bar:Rieflin           from:09/06/2003 till:21/09/2011 color:d
+  bar:Rieflin           from:09/06/2003 till:21/09/2011 color:p     width:7
+  bar:Rieflin           from:09/06/2003 till:21/09/2011 color:st    width:3
