@@ -58,5 +58,4 @@ jobs:
           files: dist/*
           generate_release_notes: true
           make_latest: true
-          token: ${{ secrets.GITHUB_TOKEN }}
-          # token: ${{ secrets.GH_PAT_FOR_RELEASES }}
+          token: ${{ secrets.GH_PAT_FOR_RELEASES }}
