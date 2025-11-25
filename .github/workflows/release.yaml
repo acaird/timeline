@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - 'v*' # Triggers on tags like v1.0, v2.3.4, etc.
+  workflow_dispatch:
 
 permissions:
   contents: write # Required to create the release and upload assets
@@ -26,18 +27,18 @@ jobs:
         id: build
         run: |
           APP_NAME="timeline"
-
+          PACKAGE_PATH="./cmd/"
           # Create a directory to hold the artifacts
           mkdir -p dist
 
           echo "Building for Windows (amd64)..."
-          GOOS=windows GOARCH=amd64 go build -v -o dist/${APP_NAME}-windows-amd64.exe .
+          GOOS=windows GOARCH=amd64 go build -v -o dist/${APP_NAME}-windows-amd64.exe $PACKAGE_PATH
 
           echo "Building for macOS (Intel amd64)..."
-          GOOS=darwin GOARCH=amd64 go build -v -o dist/${APP_NAME}-darwin-amd64 .
+          GOOS=darwin GOARCH=amd64 go build -v -o dist/${APP_NAME}-darwin-amd64 $PACKAGE_PATH
 
           echo "Building for macOS (Apple Silicon arm64)..."
-          GOOS=darwin GOARCH=arm64 go build -v -o dist/${APP_NAME}-darwin-arm64 .
+          GOOS=darwin GOARCH=arm64 go build -v -o dist/${APP_NAME}-darwin-arm64 $PACKAGE_PATH
 
           # List files to verify
           ls -l dist/
