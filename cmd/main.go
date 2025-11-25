@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"encoding/json"
+	"flag"
 	"fmt"
 	"os"
 	"time"
@@ -26,29 +28,51 @@ func main() {
 	ctx = zax.Set(ctx, logger, []zap.Field{})
 	sugar := logger.Sugar()
 
-	args := os.Args
-	if len(args) != 2 {
-		sugar.Fatalf("Usage: %s [filename]", args[0])
-	}
-	fullRawTimelineData := readfile(ctx, args[1])
+	// 805-465-4033  roxanne
 
-	// 1. Parse the timeline data
+	textOutput := flag.Bool("t", false, "enable verbose text output")
+	jsonOutput := flag.Bool("j", false, "enable verbose JSON output")
+	majorTicSize := flag.Int("tM", 8, "length of major tics on x-axis (px)")
+	minorTicSize := flag.Int("tm", 5, "length of major tics on x-axis (px)")
+	labelBarGap := flag.Int("labelbargap", 5, "gap between the label and the start of the bar (px)")
+	flag.Parse()
+	args := flag.Args()
+
+	if len(args) != 1 {
+		fmt.Fprintf(os.Stderr, "Usage: timeline [options] [filename]\n")
+		flag.Usage()
+		os.Exit(1)
+	}
+	fullRawTimelineData := readfile(ctx, args[0])
+
 	timeline, err := parse.ParseTimeline(ctx, fullRawTimelineData)
 	if err != nil {
-		fmt.Printf("Error parsing timeline data: %v\n", err)
-		return
+		sugar.Fatalf("Error parsing timeline data: %v\n", err.Error())
 	}
-	// printData(timeline)
+
+	timeline.Defaults.MajorTicSize = float64(*majorTicSize)
+	timeline.Defaults.MinorTicSize = float64(*minorTicSize)
+	timeline.Defaults.LabelBarGap = *labelBarGap
+
+	if *textOutput == true {
+		printData(timeline)
+	}
+	if *jsonOutput == true {
+		jsonString, err := json.MarshalIndent(timeline, "", "    ")
+		if err != nil {
+			sugar.Fatalf("Couldn't convert data to JSON: %w\n", err.Error())
+		}
+		fmt.Printf("%s\n", string(jsonString))
+	}
+
 	drawing := draw.DrawTimeline(ctx, timeline)
-	outputFilename := args[1] + ".png"
+
+	outputFilename := args[0] + ".png"
 	err = draw2dimg.SaveToPngFile(outputFilename, drawing)
 	if err != nil {
 		sugar.Fatalf("couldn't write output to \"%s\": %s", outputFilename, err.Error())
 	}
 	sugar.Infof("wrote chart to \"%s\"", outputFilename)
-
-	// ij, _ := json.MarshalIndent(timeline, "", " ")
-	// fmt.Printf("%s\n", ij)
 
 }
 
