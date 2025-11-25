@@ -44,12 +44,12 @@ jobs:
           ls -l dist/
 
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v4
+        uses: svenstaro/upload-release-action@v2
         with:
-          name: binaries
-          path: dist/*
-          token: ${{ secrets.GITHUB_TOKEN }}
-          # token: ${{ secrets.GH_PAT_FOR_RELEASES }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ github.ref }}
+          file: ./dist/*
+          file_glob: true
 
       - name: Create Release and Upload Assets
         uses: softprops/action-gh-release@v2
