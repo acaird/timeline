@@ -12,5 +12,4 @@ func TestParse(t *testing.T) {
 		panic(err)
 	}
 	fmt.Printf("%+v\n", b)
-
 }

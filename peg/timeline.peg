@@ -10,28 +10,63 @@ type ImageSize struct {
   Barincrement string
 }
 }
-Field
-  = key:ImageSizeIdentifier value:Value {
-     // var w string
-     // if strings.HasPrefix(value.(string), strings.ToLower("width")) {
-     //    w = strings.Split(value.(string), ":")[1]
-     // }
-     return &ImageSize{Width: value.(string)}, nil
-  }
 
+Line <- "ImageSize" __ "=" __ attributes:Attributes __ EOL
+{
+    // Initialize the struct
+    size := ImageSize{}
 
-ImageSizeIdentifier
-  = "ImageSize"_"="_ {
-    return string(c.text), nil
-  }
-
-Value
-  = [a-z :]+ {
-    return string(c.text), nil
+    // Iterate over the attributes map collected by the Attributes rule
+    for key, value := range attributes.(map[string]string) {
+        switch key {
+        case "width":
+            size.Width = value
+        case "height":
+            size.Height = value
+        case "barincrement":
+            size.Barincrement = value
+        }
     }
+    // Return the populated struct
+    return size, nil
+}
 
-_
-  = [ \t]*
+// The Attributes rule returns a map of all key-value pairs
+Attributes <- first:Attribute others:(_ Attribute)*
+{
 
-EOF
-  = !.
+	attributes := make(map[string]string)
+	// Add the first attribute
+	attributes[first.([]string)[0]] = first.([]string)[1]
+	if others == nil {
+		return attributes, nil // Handle the case where no optional attributes were found
+	}
+	othersSlice, ok := others.([]any)
+	if !ok {
+		othersSlice = others.([]interface{})
+	}
+
+	// Add the rest of the attributes
+	for _, other := range othersSlice {
+		attr := other.([]interface{})[1].([]string) // Extract the second element (the Attribute)
+		attributes[attr[0]] = attr[1]
+	}
+	return attributes, nil
+}
+
+// The Attribute rule now returns a slice: [key, value]
+Attribute <- key:Identifier __ ":" __ val:Value { return []string{key.(string), val.(string)}, nil }
+
+// Identifier, Value, Number, _, __, and EOL remain the same
+
+Identifier <- [a-zA-Z]+ { return string(c.text), nil }
+
+Value <- Number / Auto
+
+Number <- [0-9]+ { return string(c.text), nil }
+
+Auto <- "auto" { return "auto", nil }
+
+_ <- [ \t]+
+__ <- [ \t]*
+EOL <- "\n" / !.
