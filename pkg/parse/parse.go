@@ -34,6 +34,7 @@ type Timeline struct {
 // Config holds the configuration variables
 type Config struct {
 	ImageSize        ImageSize
+	Period           Period
 	ScaleMajor       Scale
 	ScaleMinor       Scale
 	DateFormat       string
@@ -63,9 +64,19 @@ type Derived struct {
 
 // ImageSize stores the size of the image as specified in the file
 type ImageSize struct {
-	Width        int
-	Height       int
-	Barincrement int
+	Width          string
+	Height         string
+	Barincrement   string
+	WidthPx        float64
+	HeightPx       float64
+	BarincrementPx float64
+}
+
+type Period struct {
+	From  string
+	To    string
+	Start time.Time
+	End   time.Time
 }
 
 // Scale holds the scale configuration
@@ -255,21 +266,24 @@ func ParseTimeline(ctx context.Context, rawConfig string) (*Timeline, error) {
 					switch kv[0] {
 					case "width":
 						if kv[1] == "auto" {
-							t.Config.ImageSize.Width = 0 // 0 can mean unspec'd
+							t.Config.ImageSize.WidthPx = 0 // 0 can mean unspec'd
 						} else {
-							t.Config.ImageSize.Width, _ = strconv.Atoi(kv[1])
+							w, _ := strconv.Atoi(kv[1])
+							t.Config.ImageSize.WidthPx = float64(w)
 						}
 					case "height":
 						if kv[1] == "auto" {
-							t.Config.ImageSize.Height = 0
+							t.Config.ImageSize.HeightPx = 0
 						} else {
-							t.Config.ImageSize.Height, _ = strconv.Atoi(kv[1])
+							h, _ := strconv.Atoi(kv[1])
+							t.Config.ImageSize.HeightPx = float64(h)
 						}
 					case "barincrement":
 						if kv[1] == "auto" {
-							t.Config.ImageSize.Barincrement = 0
+							t.Config.ImageSize.BarincrementPx = 0
 						} else {
-							t.Config.ImageSize.Barincrement, _ = strconv.Atoi(kv[1])
+							b, _ := strconv.Atoi(kv[1])
+							t.Config.ImageSize.BarincrementPx = float64(b)
 						}
 					}
 				}

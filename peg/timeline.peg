@@ -1,34 +1,101 @@
 {
 
-package timeline
+  package timeline
 
-import "strings"
+  import "strings"
+  import "time"
+  import "fmt"
+  import "github.com/acaird/timeline/pkg/parse"
 
-type ImageSize struct {
-  Width  string
-  Height string
-  Barincrement string
-}
 }
 
-Line <- "ImageSize" __ "=" __ attributes:Attributes __ EOL
+File <- lines:(ImageSizeLine /
+	       PeriodLine /
+	       ScaleMajorLine /
+	       Newline /
+	       UnmatchedLine)* __ EOF
 {
-    // Initialize the struct
-    size := ImageSize{}
+	var results []any
+
+       // Iterate over the slice of results captured from the repetition (*)
+       for _, lineResult := range lines.([]any) {
+                if lineResult == "" || lineResult == nil {
+                	   fmt.Println("skipping blank line")
+                            continue
+                }
+		// Use a type switch to only collect ImageSize and Period structs, ignoring Newline results
+		switch v := lineResult.(type) {
+		case *parse.ImageSize:
+        		fmt.Println("imagesize")
+			results = append(results, v)
+		case *parse.Period:
+        		fmt.Println("period")
+			results = append(results, v)
+		case *parse.Scale:
+        		fmt.Println("scale")
+			results = append(results, v)
+		// Newline results are discarded here
+		default:
+			// Optionally handle/log unmatched lines if needed
+		}
+	}
+	return results, nil
+}
+
+ImageSizeLine <- "ImageSize" __ "=" __ attributes:Attributes __ EOL
+{
+    imageSize := &parse.ImageSize{}
 
     // Iterate over the attributes map collected by the Attributes rule
     for key, value := range attributes.(map[string]string) {
-        switch key {
+        switch strings.ToLower(key) {
         case "width":
-            size.Width = value
+            imageSize.Width = value
         case "height":
-            size.Height = value
+            imageSize.Height = value
         case "barincrement":
-            size.Barincrement = value
+            imageSize.Barincrement = value
         }
     }
     // Return the populated struct
-    return size, nil
+    return imageSize, nil
+}
+
+PeriodLine <- "Period" __ "=" __ attributes:Attributes __ EOL
+{
+    period := &parse.Period{}
+
+    // Iterate over the attributes map collected by the Attributes rule
+    for key, value := range attributes.(map[string]string) {
+      fmt.Println(key)
+      switch strings.ToLower(key) {
+        case "from":
+          period.From = value
+        case "till":
+          period.To = value
+        }
+    }
+    return period, nil
+}
+
+// ScaleMajor = increment:5 start:1980
+ScaleMajorLine <- "ScaleMajor" __ "=" __ attributes:Attributes __ EOL
+{
+    scaleMajor := &parse.Scale{}
+
+    // Iterate over the attributes map collected by the Attributes rule
+    for key, value := range attributes.(map[string]string) {
+      fmt.Println(key)
+      switch strings.ToLower(key) {
+        case "increment":
+  	  v, _ := strconv.Atoi(value)
+          scaleMajor.Increment = v
+        case "start":
+  	  v, _ := strconv.Atoi(value)
+          scaleMajor.Start = v
+        }
+    }
+    return scaleMajor, nil
 }
 
 // The Attributes rule returns a map of all key-value pairs
@@ -69,4 +136,8 @@ Auto <- "auto" { return "auto", nil }
 
 _ <- [ \t]+
 __ <- [ \t]*
+Newline <- [ \t]* "\n"
+
+UnmatchedLine <- (!("\n") .)+ EOL
 EOL <- "\n" / !.
+EOF <- !.

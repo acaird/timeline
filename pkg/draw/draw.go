@@ -95,7 +95,7 @@ func DrawTimeline(ctx context.Context, t *parse.Timeline) *image.RGBA {
 		}
 	}
 
-	totalBarPixels := t.Config.ImageSize.Width - int(maxLabelWidth) - int(margin) - t.Defaults.LabelBarGap
+	totalBarPixels := t.Config.ImageSize.WidthPx - maxLabelWidth - margin - float64(t.Defaults.LabelBarGap)
 	totalDuration := t.PeriodEnd.Sub(t.PeriodStart)
 	barLeft := float64(int(maxLabelWidth) + t.Defaults.LabelBarGap)
 	// people's names and their bars and any bar text
@@ -131,7 +131,7 @@ func DrawTimeline(ctx context.Context, t *parse.Timeline) *image.RGBA {
 			barSegmentEnd := float64(totalBarPixels)*barEndFrac +
 				barLeft +
 				float64(t.Defaults.LabelBarGap)
-			if barSegmentEnd >= float64(t.Config.ImageSize.Width) {
+			if barSegmentEnd >= t.Config.ImageSize.WidthPx {
 				barSegmentEnd -= 5
 			}
 			gc.SetStrokeColor(GetRGBAfromName(t.Colors[item.ColorID].Value))
@@ -159,10 +159,10 @@ func DrawTimeline(ctx context.Context, t *parse.Timeline) *image.RGBA {
 	gc.SetFillColor(color.RGBA{0, 0, 0, 255})
 	gc.SetStrokeColor(color.RGBA{0, 0, 0, 255})
 	gc.MoveTo(barLeft+float64(t.Defaults.LabelBarGap), 0)
-	gc.LineTo(barLeft+float64(t.Defaults.LabelBarGap), float64(t.Config.ImageSize.Height))
+	gc.LineTo(barLeft+float64(t.Defaults.LabelBarGap), t.Config.ImageSize.HeightPx)
 	gc.Stroke()
-	gc.MoveTo(barLeft+float64(t.Defaults.LabelBarGap), float64(t.Config.ImageSize.Height))
-	gc.LineTo(float64(t.Config.ImageSize.Width-1), float64(t.Config.ImageSize.Height))
+	gc.MoveTo(barLeft+float64(t.Defaults.LabelBarGap), t.Config.ImageSize.HeightPx)
+	gc.LineTo(t.Config.ImageSize.WidthPx-1, t.Config.ImageSize.HeightPx)
 	gc.Stroke()
 	// minor x-axis tics
 	firstJan1 := time.Date(t.Config.ScaleMinor.Start,
@@ -170,12 +170,12 @@ func DrawTimeline(ctx context.Context, t *parse.Timeline) *image.RGBA {
 	lastJan1 := time.Date(t.PeriodEnd.Year(),
 		time.January, 1, 0, 0, 0, 0, t.PeriodEnd.Location())
 	_ = drawTics(firstJan1.Year(), lastJan1.Year(), false, t.Defaults.MinorTicSize, gc, t,
-		totalDuration, totalBarPixels, t.Config.ImageSize.Height, leading, t.Config.ScaleMinor.Increment, barLeft)
+		totalDuration, totalBarPixels, t.Config.ImageSize.HeightPx, leading, t.Config.ScaleMinor.Increment, barLeft)
 	// major x-axis tics
 	firstJan1 = time.Date(t.Config.ScaleMajor.Start,
 		time.January, 1, 0, 0, 0, 0, t.PeriodStart.Location())
 	yPos := drawTics(firstJan1.Year(), lastJan1.Year(), true, t.Defaults.MajorTicSize, gc, t,
-		totalDuration, totalBarPixels, t.Config.ImageSize.Height, leading, t.Config.ScaleMajor.Increment, barLeft)
+		totalDuration, totalBarPixels, t.Config.ImageSize.HeightPx, leading, t.Config.ScaleMajor.Increment, barLeft)
 
 	// LineEvents are just albums/live things; we are ignoring the
 	// layer for now and drawing them on top
@@ -185,7 +185,7 @@ func DrawTimeline(ctx context.Context, t *parse.Timeline) *image.RGBA {
 		barFrac := float64(
 			e.Date.Sub(t.PeriodStart)) / float64(totalDuration)
 		gc.MoveTo(float64(totalBarPixels)*barFrac+barLeft+float64(t.Defaults.LabelBarGap), 0)
-		gc.LineTo(float64(totalBarPixels)*barFrac+barLeft+float64(t.Defaults.LabelBarGap), float64(t.Config.ImageSize.Height))
+		gc.LineTo(float64(totalBarPixels)*barFrac+barLeft+float64(t.Defaults.LabelBarGap), t.Config.ImageSize.HeightPx)
 		gc.Stroke()
 
 	}
@@ -265,7 +265,8 @@ func drawTics(
 	gc *draw2dimg.GraphicContext,
 	t *parse.Timeline,
 	totalDuration time.Duration,
-	totalBarPixels, chartHeight, leading, step int,
+	totalBarPixels, chartHeight float64,
+	leading, step int,
 	barLeft float64) float64 {
 	var yPos float64
 	for i := startYear; i <= endYear; i = i + step {
