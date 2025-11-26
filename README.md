@@ -21,15 +21,30 @@ The data files in [`/examples`](https://github.com/acaird/timeline/tree/main/exa
 
 # Installation and execution
 
+## Building from source
+
 1. Install a version of Go at or greater than 1.25.0 from https://go.dev/
 1. Clone this repository
 1. Run the program with the command
    ```
    go run cmd/main.go /path/to/data/file
    ```
+   or compile the program with the command
+   ```
+   go build -o timeline cmd/main.go
+   ```
+
+## Using pre-compiled binaries
+1. Choose a pre-compiled version from the [Releases](https://github.com/acaird/timeline/releases/) page that is suitable for your computer
+1. Download it and rename the download to `timeline`
+1. Open the Terminal.app program (on a Mac) or the command shell (on Windows)
+1. Using the `cd` command, navigate to where you downloaded the program (`cd ~/Downloads` or `cd ~/Desktop` on a Mac)
+
+## Running timeline
+To
 1. To see the options, run:
    ```
-   go run cmd/main.go --help
+   timeline --help
    ```
    Currently the options are:
    - `-font`; this sets the font for the text in the chart. The options are limited to one of: DMSans, ComputerModernRoman, Luxi (default "DMSans") with DMSans being a nice sans serif font, ComputerModernRoman which is a nice serifed font, and Luxi, which is built in
@@ -42,7 +57,7 @@ The data files in [`/examples`](https://github.com/acaird/timeline/tree/main/exa
 
    for example, you can produce `the_cure.png` (as shown above) with the command:
    ```
-   go run cmd/main.go -o the_cure.png ./examples/the_cure.data
+   timeline -o the_cure.png ./examples/the_cure.data
    ```
 
 # To-do
