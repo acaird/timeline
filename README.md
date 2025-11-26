@@ -31,6 +31,15 @@ The data files in [`/examples`](https://github.com/acaird/timeline/tree/main/exa
    ```
    go run cmd/main.go --help
    ```
+   Currently the options are:
+   - `-font`; this sets the font for the text in the chart. The options are limited to one of: DMSans, ComputerModernRoman, Luxi (default "DMSans") with DMSans being a nice sans serif font, ComputerModernRoman which is a nice serifed font, and Luxi, which is built in
+   - `-j` enable verbose JSON output; this is generally not useful but if you want to see the internal representation of the data this is how to do it
+   - `-labelbargap` ; this is an integer that sets the size of the gap between the label and the start of the bar in pixels. It is 5px by default. This is also used in many other places in the chart to define spacing
+   - `-o` the name of the output file, this defaults to the name of the input file (including any extensions) with the ending `.png`
+   - `-t` this enables verbose text output; this is also generally not useful, but it is another representation of the data that was read from the input file
+   - `-tM` this sets length of major tics on x-axis in pixels, the default is 8px
+   - `-tm` this sets length of minor tics on x-axis in pixels, the default is 5px
+
    for example, you can produce `the_cure.png` (as shown above) with the command:
    ```
    go run cmd/main.go -o the_cure.png ./examples/the_cure.data
