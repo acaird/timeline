@@ -34,21 +34,21 @@ func DrawTimeline(ctx context.Context, t *parse.Timeline) *image.RGBA {
 	leading := 8   // px (=6 pts (0.75*8)
 	margin := 5.0  // px
 
-	if t.Config.ImageSize.Width == 0 {
-		t.Config.ImageSize.Width = 800
+	if t.Config.ImageSize.WidthPx == 0 {
+		t.Config.ImageSize.WidthPx = 800
 	}
-	if t.Config.ImageSize.Height == 0 {
-		t.Config.ImageSize.Height = len(t.Bars)*(fontSize+leading) + leading
+	if t.Config.ImageSize.HeightPx == 0 {
+		t.Config.ImageSize.HeightPx = float64(len(t.Bars)*(fontSize+leading) + leading)
 	}
-	height := t.Config.ImageSize.Height * 2
+	height := t.Config.ImageSize.HeightPx * 2
 
-	imageData := image.NewRGBA(image.Rect(0, 0, t.Config.ImageSize.Width, height))
+	imageData := image.NewRGBA(image.Rect(0, 0, int(t.Config.ImageSize.WidthPx), int(height)))
 	gc := draw2dimg.NewGraphicContext(imageData)
 
 	// draw a white box with a black edge to put everything into
 	gc.SetStrokeColor(color.Black)
 	gc.SetLineWidth(1)
-	draw2dkit.Rectangle(gc, 0, 0, float64(t.Config.ImageSize.Width), float64(height))
+	draw2dkit.Rectangle(gc, 0, 0, float64(t.Config.ImageSize.WidthPx), float64(height))
 	gc.FillStroke()
 
 	var drawFont *truetype.Font
