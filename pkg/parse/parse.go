@@ -15,6 +15,7 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/llgcode/draw2d/draw2dimg"
 	"github.com/yuseferi/zax"
 )
 
@@ -49,13 +50,16 @@ type Config struct {
 
 // Defaults holds defaults that aren't in the config
 type Defaults struct {
-	MajorTicSize float64
-	MinorTicSize float64
-	LabelBarGap  int // the size of the gap between the label and the start of the bar
-	FontSize     int
-	Leading      int
-	Margin       float64
-	FontFace     string
+	MajorTicSize    float64
+	MinorTicSize    float64
+	LabelBarGap     int // the size of the gap between the label and the start of the bar
+	FontFace        string
+	FontSize        int
+	FontLeading     int
+	Margin          float64
+	BorderColor     string
+	BorderWidth     float64
+	GraphicsContext *draw2dimg.GraphicContext
 }
 
 // Derived holds computed or created parts of the timeline

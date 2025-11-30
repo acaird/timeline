@@ -30,9 +30,9 @@ var CM []byte
 func DrawTimeline(ctx context.Context, t *parse.Timeline) *image.RGBA {
 	logger := zax.Get(ctx)
 
-	fontSize := 12 // pts
-	leading := 8   // px (=6 pts (0.75*8)
-	margin := 5.0  // px
+	fontSize := t.Defaults.FontSize
+	leading := t.Defaults.FontLeading
+	margin := t.Defaults.Margin
 
 	if t.Config.ImageSize.WidthPx == 0 {
 		t.Config.ImageSize.WidthPx = 800
@@ -43,11 +43,12 @@ func DrawTimeline(ctx context.Context, t *parse.Timeline) *image.RGBA {
 	height := t.Config.ImageSize.HeightPx * 2
 
 	imageData := image.NewRGBA(image.Rect(0, 0, int(t.Config.ImageSize.WidthPx), int(height)))
-	gc := draw2dimg.NewGraphicContext(imageData)
+	t.Defaults.GraphicsContext = draw2dimg.NewGraphicContext(imageData)
+	gc := t.Defaults.GraphicsContext
 
 	// draw a white box with a black edge to put everything into
-	gc.SetStrokeColor(color.Black)
-	gc.SetLineWidth(1)
+	gc.SetStrokeColor(GetRGBAfromName(t.Defaults.BorderColor))
+	gc.SetLineWidth(t.Defaults.BorderWidth)
 	draw2dkit.Rectangle(gc, 0, 0, float64(t.Config.ImageSize.WidthPx), float64(height))
 	gc.FillStroke()
 
@@ -76,7 +77,7 @@ func DrawTimeline(ctx context.Context, t *parse.Timeline) *image.RGBA {
 	// Register the font with draw2d
 	draw2d.RegisterFont(fontData, drawFont)
 	gc.SetFontData(fontData)
-	gc.SetFontSize(12)
+	gc.SetFontSize(float64(t.Defaults.FontSize))
 	gc.SetFillColor(color.Black)
 
 	people := []string{}

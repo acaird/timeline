@@ -35,6 +35,11 @@ func main() {
 	labelBarGap := flag.Int("labelbargap", 5, "gap between the label and the start of the bar (px)")
 	outputFileName := flag.String("o", "", "name of the output file (default: inputfile+.png)")
 	font := flag.String("font", "DMSans", fmt.Sprintf("one of: %s", strings.Join(fontList, ", ")))
+	fontsize := flag.Int("fontsize", 12, "font size (pts)")
+	leading := flag.Int("leading", 8, "leading (gap between lines of text in px)")
+	margin := flag.Float64("margin", 5, "margin (px)")
+	borderColor := flag.String("border-color", "black", "color of the border around the image")
+	borderWidth := flag.Float64("border-width", 1, "width of the border around the image")
 	flag.Parse()
 	args := flag.Args()
 
@@ -54,6 +59,11 @@ func main() {
 	timeline.Defaults.MinorTicSize = float64(*minorTicSize)
 	timeline.Defaults.LabelBarGap = *labelBarGap
 	timeline.Defaults.FontFace = *font
+	timeline.Defaults.FontSize = *fontsize
+	timeline.Defaults.FontLeading = *leading
+	timeline.Defaults.Margin = *margin
+	timeline.Defaults.BorderColor = *borderColor
+	timeline.Defaults.BorderWidth = *borderWidth
 
 	if *textOutput == true {
 		printData(timeline)
