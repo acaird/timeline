@@ -61,7 +61,7 @@ To
    ```
 
 # To-do
-  1. Clean up `draw.go` which is a damn travesty of Go
+  1. [x] Clean up `draw.go` which is a damn travesty of Go
   1. Write a PEG for the specification so everything can be parsed (there is some early drafts of this in `peg/`, but there is a way to go
 	 1. Write the code to handle all of the options in the spec that were parsed by the PEG
   1. Support PDF output

@@ -1,6 +1,6 @@
 // from https://ploticus.sourceforge.net/doc/welcome.html - Ploticus 2.4.2
 // ploticus242/src/color.c
-package draw
+package timeline
 
 import (
 	"fmt"

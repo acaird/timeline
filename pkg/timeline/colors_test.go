@@ -1,4 +1,4 @@
-package draw
+package timeline
 
 import (
 	"image/color"

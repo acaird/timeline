@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/acaird/timeline/pkg/draw"
-	"github.com/acaird/timeline/pkg/parse"
+	timeline "github.com/acaird/timeline/pkg/timeline"
+
 	"github.com/llgcode/draw2d/draw2dimg"
 	"github.com/yuseferi/zax"
 	"go.uber.org/zap"
@@ -50,33 +50,34 @@ func main() {
 	}
 	fullRawTimelineData := readfile(ctx, args[0])
 
-	timeline, err := parse.ParseTimeline(ctx, fullRawTimelineData)
+	tl, err := timeline.ParseTimeline(ctx, fullRawTimelineData)
+
 	if err != nil {
 		sugar.Fatalf("Error parsing timeline data: %v\n", err.Error())
 	}
 
-	timeline.Defaults.MajorTicSize = float64(*majorTicSize)
-	timeline.Defaults.MinorTicSize = float64(*minorTicSize)
-	timeline.Defaults.LabelBarGap = *labelBarGap
-	timeline.Defaults.FontFace = *font
-	timeline.Defaults.FontSize = *fontsize
-	timeline.Defaults.FontLeading = *leading
-	timeline.Defaults.Margin = *margin
-	timeline.Defaults.BorderColor = *borderColor
-	timeline.Defaults.BorderWidth = *borderWidth
+	tl.Defaults.MajorTicSize = float64(*majorTicSize)
+	tl.Defaults.MinorTicSize = float64(*minorTicSize)
+	tl.Defaults.LabelBarGap = *labelBarGap
+	tl.Defaults.FontFace = *font
+	tl.Defaults.FontSize = *fontsize
+	tl.Defaults.FontLeading = *leading
+	tl.Defaults.Margin = *margin
+	tl.Defaults.BorderColor = *borderColor
+	tl.Defaults.BorderWidth = *borderWidth
+
+	drawing := tl.DrawTimeline(ctx)
 
 	if *textOutput == true {
-		printData(timeline)
+		printData(tl)
 	}
 	if *jsonOutput == true {
-		jsonString, err := json.MarshalIndent(timeline, "", "    ")
+		jsonString, err := json.MarshalIndent(tl, "", "    ")
 		if err != nil {
 			sugar.Fatalf("Couldn't convert data to JSON: %w\n", err.Error())
 		}
 		fmt.Printf("%s\n", string(jsonString))
 	}
-
-	drawing := draw.DrawTimeline(ctx, timeline)
 
 	var output string
 	if *outputFileName == "" {
@@ -93,18 +94,18 @@ func main() {
 
 }
 
-func printData(timeline *parse.Timeline) {
+func printData(timeline *timeline.Timeline) {
 
 	fmt.Println("--- Parsed Config Summary ---")
 
 	// Print Period
 	fmt.Printf("Timeline Period: %s - %s\n",
-		timeline.PeriodStart.String(),
-		timeline.PeriodEnd.String(),
+		timeline.Config.Period.Start.String(),
+		timeline.Config.Period.End.String(),
 	)
 	// Print image size
-	fmt.Printf("Image size: %d x %d (0=undefined)\n", timeline.Config.ImageSize.Width, timeline.Config.ImageSize.Height)
-	fmt.Printf("Bar increments: %d\n", timeline.Config.ImageSize.Barincrement)
+	fmt.Printf("Image size: %f x %f (0=undefined)\n", timeline.Config.ImageSize.WidthPx, timeline.Config.ImageSize.HeightPx)
+	fmt.Printf("Bar increments: %f\n", timeline.Config.ImageSize.BarincrementPx)
 
 	fmt.Println()
 

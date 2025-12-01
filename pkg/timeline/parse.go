@@ -1,7 +1,7 @@
 // from Google Gemini, which was crap
 // https://en.wikipedia.org/wiki/Help:EasyTimeline_syntax
 // so far, this does not implement everything
-package parse
+package timeline
 
 import (
 	"bufio"
@@ -15,108 +15,8 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/llgcode/draw2d/draw2dimg"
 	"github.com/yuseferi/zax"
 )
-
-// Timeline represents the entire parsed timeline data
-type Timeline struct {
-	Config      Config
-	Defaults    Defaults
-	Derived     Derived
-	PeriodStart time.Time
-	PeriodEnd   time.Time
-	Colors      map[string]Color
-	Bars        map[string]Bar
-	PlotItems   []PlotItem
-	LineEvents  []LineEvents
-}
-
-// Config holds the configuration variables
-type Config struct {
-	ImageSize        ImageSize
-	Period           Period
-	ScaleMajor       Scale
-	ScaleMinor       Scale
-	DateFormat       string
-	LegendColumns    int
-	DefaultLineWidth int
-	MaxLineWidth     int
-	PlotTextColor    string
-	PlotTextSize     int
-	// Align            string // we are ignoring this for now
-	// Shift            string // we are ignoring this for now
-}
-
-// Defaults holds defaults that aren't in the config
-type Defaults struct {
-	MajorTicSize    float64
-	MinorTicSize    float64
-	LabelBarGap     int // the size of the gap between the label and the start of the bar
-	FontFace        string
-	FontSize        int
-	FontLeading     int
-	Margin          float64
-	BorderColor     string
-	BorderWidth     float64
-	GraphicsContext *draw2dimg.GraphicContext
-}
-
-// Derived holds computed or created parts of the timeline
-type Derived struct {
-}
-
-// ImageSize stores the size of the image as specified in the file
-type ImageSize struct {
-	Width          string
-	Height         string
-	Barincrement   string
-	WidthPx        float64
-	HeightPx       float64
-	BarincrementPx float64
-}
-
-type Period struct {
-	From  string
-	To    string
-	Start time.Time
-	End   time.Time
-}
-
-// Scale holds the scale configuration
-type Scale struct {
-	Increment int
-	Start     int
-}
-
-// Color stores the ID, actual value, and legend text for a color definition.
-type Color struct {
-	ID     string
-	Value  string
-	Legend string
-}
-
-// Bar stores the ID and the display text for a member/bar in the timeline.
-type Bar struct {
-	ID   string
-	Text string
-}
-
-// PlotItem represents an interval (e.g., a member's tenure in a role).
-type PlotItem struct {
-	BarID   string
-	From    time.Time
-	Til     time.Time
-	ColorID string
-	Width   int // Corresponds to the layer width (e.g., 11, 7, 3)
-	Text    string
-}
-
-// LineEvents represents a vertical line marker (e.g., an album release).
-type LineEvents struct {
-	ColorID string
-	Date    time.Time
-}
 
 // --- Parsing Constants and Helper Regex ---
 
@@ -127,7 +27,7 @@ var sectionRe = regexp.MustCompile(`^[A-Z].*=$`)
 var confirRe = regexp.MustCompile(`^[A-Z].*=.*`)
 
 // Regex to capture key-value pairs in the general config sections (like ImageSize).
-var kvRe = regexp.MustCompile(`^\s*(\w+)\s*=\s*(.*)$`)
+// var kvRe = regexp.MustCompile(`^\s*(\w+)\s*=\s*(.*)$`)
 
 // Regex to capture BarData (e.g., bar:Alex text:Alex Kapranos)
 var barRe = regexp.MustCompile(`^\s*bar:(\w+).*text:(.+?)(?:\s+|$)$`)
@@ -201,7 +101,7 @@ func ParseTimeline(ctx context.Context, rawConfig string) (*Timeline, error) {
 	currentSection := ""
 	currentWidth := 0
 	lineColor := ""
-	var layout string
+	var dateLayout string
 
 	for scanner.Scan() {
 		line := strings.TrimRightFunc(scanner.Text(), unicode.IsSpace)
@@ -244,19 +144,19 @@ func ParseTimeline(ctx context.Context, rawConfig string) (*Timeline, error) {
 						if err != nil {
 							logger.Sugar().Fatalf(err.Error())
 						}
-						tillPart = end.Format(layout)
+						tillPart = end.Format(dateLayout)
 					}
-					start, err = time.Parse(layout, fromPart)
+					start, err = time.Parse(dateLayout, fromPart)
 					if err == nil {
-						t.PeriodStart = start
+						t.Config.Period.Start = start
 					} else {
 						logger.Sugar().Fatalf("couldn't compute start date; check format and data file")
 
 					}
 
-					end, err = time.Parse(layout, tillPart)
+					end, err = time.Parse(dateLayout, tillPart)
 					if err == nil {
-						t.PeriodEnd = end
+						t.Config.Period.End = end
 					} else {
 						logger.Sugar().Fatalf("couldn't compute end date; check format and data file")
 					}
@@ -293,16 +193,17 @@ func ParseTimeline(ctx context.Context, rawConfig string) (*Timeline, error) {
 				}
 			}
 			if strings.HasPrefix(line, "DateFormat") {
-				layout = "02/01/2006" // dd/mm/yyyy
+				dateLayout = "02/01/2006" // dd/mm/yyyy
 				dateFormat := strings.TrimSpace(strings.Split(line, "=")[1])
 				switch dateFormat {
 				case "mm/dd/yyyy":
-					layout = "01/02/2006" // mm/dd/yyyy
+					dateLayout = "01/02/2006" // mm/dd/yyyy
 				case "yyyy":
-					layout = "2006" // yyyy
+					dateLayout = "2006" // yyyy
 				default:
-					layout = "02/01/2006" // dd/mm/yyyy
+					dateLayout = "02/01/2006" // dd/mm/yyyy
 				}
+				t.Config.DateFormat = dateLayout
 			}
 			if strings.HasPrefix(line, "Legend") {
 				var err error
@@ -426,18 +327,18 @@ func ParseTimeline(ctx context.Context, rawConfig string) (*Timeline, error) {
 					width = w
 				}
 				if matches[2] == "start" {
-					from = t.PeriodStart
+					from = t.Config.Period.Start
 				} else {
-					from, err = time.Parse(layout, matches[2])
+					from, err = time.Parse(dateLayout, matches[2])
 					if err != nil {
 						logger.Sugar().Fatalf("couldn't read the start date (\"%s\" is not a date)",
 							matches[1])
 					}
 				}
 				if matches[3] == "end" {
-					til = t.PeriodEnd
+					til = t.Config.Period.End
 				} else {
-					til, err = time.Parse(layout, matches[3])
+					til, err = time.Parse(dateLayout, matches[3])
 					if err != nil {
 						logger.Sugar().Fatalf("couldn't read the til date (\"%s\" is not a date)",
 							matches[1])
@@ -464,7 +365,7 @@ func ParseTimeline(ctx context.Context, rawConfig string) (*Timeline, error) {
 			}
 			if strings.HasPrefix(cleanLine, "at:") {
 				date := strings.Split(cleanLine, ":")[1]
-				d, err := time.Parse(layout, date)
+				d, err := time.Parse(dateLayout, date)
 				if err != nil {
 					logger.Sugar().Fatalf("couldn't read the date in LineData (\"%s\" is not a date)", date)
 				}
